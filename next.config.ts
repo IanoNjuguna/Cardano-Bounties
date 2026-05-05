@@ -7,13 +7,6 @@ const nextConfig: NextConfig = {
     "@meshsdk/core-cst",
     "@meshsdk/core",
   ],
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.resolve.alias["libsodium-wrappers-sumo"] =
-        require.resolve("libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js");
-    }
-    return config;
-  },
 };
 
 export default nextConfig;
