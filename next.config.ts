@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: [
+    "libsodium-wrappers-sumo",
+    "@cardano-sdk/crypto",
+    "@meshsdk/core-cst",
+    "@meshsdk/core",
+  ],
 };
 
 export default nextConfig;
