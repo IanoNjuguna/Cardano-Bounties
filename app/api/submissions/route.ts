@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // POST
-export async function  POST(req: NextRequest) {
+export async function POST(req: NextRequest) {
 
-    //Get user id injected by middleware
     const contributorId = req.headers.get('x-user-id')
 
     if (!contributorId) {
-        return NextResponse.json({error: 'Unauthorized'}, {status: 401})
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await req.json()
@@ -16,17 +15,16 @@ export async function  POST(req: NextRequest) {
 
     if (!bounty_id || !content) {
         return NextResponse.json(
-            {error: 'bounty_id and content are required' },
+            { error: 'bounty_id and content are required' },
             { status: 400 }
         )
     }
 
-    // Check the bounty exists and is still open
     const { data: bounty, error: bountyError } = await supabaseAdmin
-    .from('bounties')
-    .select('id, status')
-    .eq('id', bounty_id)
-    .single()
+        .from('bounties')
+        .select('id, status')
+        .eq('id', bounty_id)
+        .single()
 
     if (bountyError || !bounty) {
         return NextResponse.json({ error: 'Bounty not found' }, { status: 404 })
@@ -36,21 +34,21 @@ export async function  POST(req: NextRequest) {
         return NextResponse.json({ error: 'Bounty is no longer open' }, { status: 400 })
     }
 
-        const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
         .from('submissions')
-        .insert({ bounty_id, contributor_id, content})
+        .insert({ bounty_id, contributor_id: contributorId, content })  // ← fixed
         .select()
         .single()
 
-        if (error) {
-            if (error?.code === '23505') {
-                return NextResponse.json(
-                    { error: 'you have already submitted to this bounty' },
-                    { status: 409 }
-                )
-            }
-            return NextResponse.json({ error: error?.message }, { status: 500 })
+    if (error) {
+        if (error?.code === '23505') {
+            return NextResponse.json(
+                { error: 'you have already submitted to this bounty' },
+                { status: 409 }
+            )
         }
-        
-        return NextResponse.json(data, { status: 201 })
+        return NextResponse.json({ error: error?.message }, { status: 500 })
     }
+
+    return NextResponse.json(data, { status: 201 })
+}
