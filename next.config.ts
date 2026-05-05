@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: [
@@ -10,9 +9,8 @@ const nextConfig: NextConfig = {
   ],
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.resolve.alias["libsodium-wrappers-sumo"] = path.resolve(
-        "node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js"
-      );
+      config.resolve.alias["libsodium-wrappers-sumo"] =
+        require.resolve("libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js");
     }
     return config;
   },
