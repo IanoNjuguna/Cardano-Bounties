@@ -1879,6 +1879,18 @@ svg {
   text-align: center;
 }
 
+.footer-bottom a {
+  color: #343942;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+
+.footer-bottom a:hover {
+  color: var(--blue);
+}
+
 .footer-bottom div {
   display: flex;
   justify-content: flex-end;

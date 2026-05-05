@@ -25,14 +25,13 @@ export function Footer() {
           </div>
           <div>
             <h3>Community</h3>
-            <a href="#">Follow on X (Twitter)</a>
-            <a href="#">Join Telegram / Discord</a>
+            <a href="https://x.com/cardanobounties" target="blank">Follow on X (Twitter)</a>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2025 Cardano Bounties. All rights reserved.</p>
+          <p>© 2026 Cardano Bounties. All rights reserved.</p>
           <p>Cardano Bounties is not affiliated with or endorsed by IOHK, Cardano Foundation, or Emurgo.</p>
-          <p>Built on Cardano</p>
+          <p>Built with ❤️ by <a href="https://x.com/TechKr_Team" target="_blank" rel="noopener noreferrer">TechKR</a> and <a href="https://gimbalabs.com" target="_blank" rel="noopener noreferrer">Gimbalabs</a>.</p>
         </div>
       </div>
     </footer>
