@@ -10,7 +10,7 @@ export function Hero() {
           <br />
           Contribute to Cardano and Get Paid in ADA
         </h1>
-        <p>Cardano Bounties is an open platform where anyone - regardless of skill level - can find meaningful work across the Cardano ecosystem. Discover tasks in code, design, research, content, and community. Do the work. Earn ADA.</p>
+        <p>Cardano bounties is an open platform where anyone regardless of experience or skill level can contribute to the Cardano ecosystem. Explore tasks, build in public, and earn ADA while contributing to real projects.</p>
         <div className="hero-actions">
           <a className="button button-primary" href="#waitlist">Join the Waitlist</a>
           <a className="button button-secondary" href="#pricing">See How It Works</a>
