@@ -13,6 +13,7 @@
     "@meshsdk/react": "^1.8.14",
     "@supabase/supabase-js": "^2.105.1",
     "jsonwebtoken": "^9.0.3",
+    "lightningcss": "^1.32.0",
     "next": "^16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"

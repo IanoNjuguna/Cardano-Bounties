@@ -14,7 +14,7 @@ const adminRoutes = [
     'api/admin'
 ]
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl
 
     // Check if route needs protection
