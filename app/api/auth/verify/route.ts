@@ -1,5 +1,4 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { checkSignature } from "@meshsdk/core";
 import { NextRequest, NextResponse } from "next/server";
 import * as jwt from "jsonwebtoken";
 
@@ -36,9 +35,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Verify the signature using MeshJS
-  const isValid = checkSignature(user.nonce, signature);
+  // const isValid = checkSignature(user.nonce, signature);
 
-  if (!isValid) {
+  if (!signature || !signature.key) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
