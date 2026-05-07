@@ -49,38 +49,6 @@ export function Hero() {
             </div>
           </section>
 
-          <section className="dashboard">
-            <div className="dashboard-main">
-              <div className="dashboard-toolbar">
-                <span>Table</span>
-                <span className="active">Kanban</span>
-                <span>List</span>
-                <span>Calendar</span>
-                <p>January 2026</p>
-                <em>Owners</em>
-                <em>Filter</em>
-              </div>
-              <div className="kanban">
-                {[
-                  ["Backlog", "Logo Options", "Landing Page Draft", "Create UX/UI"],
-                  ["To-Do", "Landing Page Dev", "Content Review", "POS Dashboard"],
-                  ["In Progress", "Tasks Dashboard", "Filter Dashboard"],
-                  ["Done", "Wireframe Design", "Scope Meeting"],
-                ].map(([column, ...tasks]) => (
-                  <div className="kanban-column" key={column}>
-                    <h3>{column}</h3>
-                    {tasks.map((task, index) => (
-                      <article key={task}>
-                        <h4>{task}</h4>
-                        <small>{index % 2 === 0 ? "Design" : "Dev"}</small>
-                        <div><span /><i style={{ width: `${42 + index * 18}%` }} /></div>
-                      </article>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
           </div>
         </div>
       </div>

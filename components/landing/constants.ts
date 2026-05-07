@@ -1,7 +1,6 @@
 export const navItems = [
   ["Explore Bounties", "#features"],
   ["How It Works", "#pricing"],
-  ["Leaderboard", "#leaderboard"],
   ["FAQs", "#faq"],
 ];
 
