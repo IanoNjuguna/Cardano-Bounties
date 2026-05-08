@@ -22,7 +22,7 @@ export function Testimonials() {
             </article>
           ))}
         </div>
-        <a className="center-button" href="#contact">Contact us to post a bounty</a>
+        <button className="center-button" disabled>Coming Soon</button>
       </div>
     </section>
   );

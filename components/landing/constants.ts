@@ -1,7 +1,7 @@
 export const navItems = [
   ["Explore Bounties", "#features"],
   ["How It Works", "#pricing"],
-  ["Apply", "#leaderboard"],
+  ["FAQs", "#faq"],
 ];
 
 export const benefits = [
@@ -96,9 +96,21 @@ export const testimonials = [
 ];
 
 export const faqs = [
-  ["Proof of Stake from day one", "Cardano's Ouroboros protocol is one of the most energy-efficient and peer-reviewed blockchains ever built. Your contributions support a network designed for the long term."],
-  ["Low transaction fees", "ADA rewards are paid on-chain with minimal fees, meaning more of the reward actually reaches you."],
-  ["A growing global ecosystem", "From DeFi to NFTs to identity and governance, Cardano is expanding rapidly. The earlier you contribute, the more you shape what it becomes."],
+  ["Do I need to pay to participate?", "No. Participation in Cardano Bounties is completely free. You just connect with your Cardano native wallet (e.g., Vespr or Eternl)."],
+  ["Who can take part in bounties?", "Anyone can participate. Students, beginners, and professionals. If you can deliver value, you’re welcome."],
+  ["Do I need prior experience in Cardano?", "Not necessarily. Most bounties are beginner-friendly, while others may require technical or ecosystem knowledge."],
+  ["Can I work on multiple bounties at once?", "Yes, as long as you can meet the requirements and deadlines for each."],
+  ["How do I apply for a bounty?", "Each bounty listing will specify its own application process. Follow the instructions provided on the listing."],
+  ["What happens if multiple people submit for the same bounty?", "The best submission will be selected based on quality, relevance, and completeness. Some bounties may reward multiple contributors if stated."],
+  ["How are submissions reviewed?", "Submissions are evaluated based on quality, clarity, originality, alignment with requirements, and completeness."],
+  ["How long does it take to receive rewards?", "Reviews typically happen within 3 days. Once approved, rewards are processed shortly after."],
+  ["What kind of rewards can I earn?", "You will be rewarded with $ADA, the ecosystem token. You will also gain recognition and visibility within the community."],
+  ["What happens if my submission is not selected?", "You won’t receive a reward for that bounty, but you are encouraged to improve your submission, try other bounties, and learn from feedback."],
+  ["Can I collaborate with others on a bounty?", "Yes, if collaboration is allowed for that specific bounty. Make sure roles and contributions are clearly defined."],
+  ["Is plagiarism allowed?", "No. All submissions must be original. Plagiarized work will be disqualified."],
+  ["Can bounties change over time?", "Yes. Since this is an evolving initiative, bounty structures, rewards, and processes may improve over time."],
+  ["Why is Cardano Bounties described as an experiment?", "It's an ongoing experiment to explore how contribution-based incentives can grow the ecosystem. We iterate based on real participation."],
+  ["How can I stay updated?", "Follow our official channels and join the community to get updates on new bounties and opportunities."],
 ];
 
 export const liveBounties = [

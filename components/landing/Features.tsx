@@ -6,21 +6,21 @@ function FeatureMock({ type }: { type: string }) {
     return (
       <div className="time-visual">
         <div className="timer-card">
-          <b>Mono project evaluation</b>
-          <span>Today at 12:30 - 04:06</span>
-          <button>Go to Zoom link</button>
+          <b>UI/UX Review Audit</b>
+          <span>Protocol Landing Page</span>
+          <button>Review Assets</button>
         </div>
         <div className="meeting-card">
-          <b>Mono project evaluation</b>
-          <span>12:30 - 04:06</span>
-          <nav><i>Details</i><i>Participant</i><i>Comment</i></nav>
-          {["Jeni Doe", "Mark Hales", "Osuna Matthew"].map((name, index) => (
+          <b>Design System Sync</b>
+          <span>Sprint 14 Review</span>
+          <nav><i>Assets</i><i>Colors</i><i>Feedback</i></nav>
+          {["Alex Chen", "Sarah Miller", "David Kim"].map((name, index) => (
             <div key={name}>
               <p>{name}</p>
-              <em>{["Done", "Progress", "Approval"][index]}</em>
+              <em>{["Reviewed", "In Review", "Draft"][index]}</em>
             </div>
           ))}
-          <small>Go to Zoom link</small>
+          <small>Open Figma File</small>
         </div>
       </div>
     );
@@ -29,11 +29,11 @@ function FeatureMock({ type }: { type: string }) {
   if (type === "integrations") {
     return (
       <div className="integration-visual">
-        <span className="logo microsoft">{"\u25a6"}</span>
-        <span className="logo drive">{"\u25b3"}</span>
-        <span className="logo figma">{"\u25cf"}</span>
-        <span className="logo vimeo">v</span>
-        <span className="logo slack">{"\u2723"}</span>
+        <span className="logo microsoft" title="Guides">{"\u270e"}</span>
+        <span className="logo drive" title="Docs">{"\u25a4"}</span>
+        <span className="logo figma" title="Technical">{"\u270d"}</span>
+        <span className="logo vimeo" title="Video">v</span>
+        <span className="logo slack" title="Support">?</span>
         <i className="line line-a" />
         <i className="line line-b" />
         <i className="line line-c" />
@@ -56,19 +56,19 @@ function FeatureMock({ type }: { type: string }) {
   return (
     <div className="task-visual">
       <div className="candidate-card card-main">
-        <span>G</span>
-        <small>Saved</small>
-        <b>Google</b>
-        <h4>Graphic Designer</h4>
-        <p>Full-time <i>Flexible schedule</i></p>
-        <em>$150 - 220k</em>
-        <button>Apply now</button>
+        <span style={{ color: "var(--blue)" }}>{"\u27e8\u27e9"}</span>
+        <small>Smart Contract</small>
+        <b>Plutus V3</b>
+        <h4>Contract Security Audit</h4>
+        <p>Expert <i>Audit report needed</i></p>
+        <em>2,500 - 5,000 ADA</em>
+        <button>Claim Bounty</button>
       </div>
       <div className="candidate-card card-back">
-        <span>G</span>
-        <b>Google</b>
-        <h4>UX Designer</h4>
-        <button>Apply now</button>
+        <span style={{ color: "#111" }}>{"\u27e8\u27e9"}</span>
+        <b>Cardano SDK</b>
+        <h4>Wallet Integration</h4>
+        <button>View Details</button>
       </div>
     </div>
   );

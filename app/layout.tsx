@@ -15,7 +15,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Cardano Bounties - Learn, Contribute & Earn on Cardano",
   description:
-    "The home for Cardano bounties. Join a growing community of contributors earning ADA through code, design, research, content, and community work. No account needed - just connect your wallet.",
+    "An open platform where anyone regardless of experience or skill level can contribute to the Cardano ecosystem. Explore tasks, build in public, and earn ADA while contributing to real projects.",
   openGraph: {
     images: [
       {
@@ -25,7 +25,11 @@ export const metadata: Metadata = {
     ],
   },
   icons: {
-    icon: "/favicon.png",
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 

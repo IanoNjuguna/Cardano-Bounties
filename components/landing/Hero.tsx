@@ -10,7 +10,7 @@ export function Hero() {
           <br />
           Contribute to Cardano and Get Paid in ADA
         </h1>
-        <p>Cardano Bounties is an open platform where anyone - regardless of skill level - can find meaningful work across the Cardano ecosystem. Discover tasks in code, design, research, content, and community. Do the work. Earn ADA.</p>
+        <p>Cardano bounties is an open platform where anyone regardless of experience or skill level can contribute to the Cardano ecosystem. Explore tasks, build in public, and earn ADA while contributing to real projects.</p>
         <div className="hero-actions">
           <a className="button button-primary" href="#waitlist">Join the Waitlist</a>
           <a className="button button-secondary" href="#pricing">See How It Works</a>
@@ -49,38 +49,6 @@ export function Hero() {
             </div>
           </section>
 
-          <section className="dashboard">
-            <div className="dashboard-main">
-              <div className="dashboard-toolbar">
-                <span>Table</span>
-                <span className="active">Kanban</span>
-                <span>List</span>
-                <span>Calendar</span>
-                <p>January 2026</p>
-                <em>Owners</em>
-                <em>Filter</em>
-              </div>
-              <div className="kanban">
-                {[
-                  ["Backlog", "Logo Options", "Landing Page Draft", "Create UX/UI"],
-                  ["To-Do", "Landing Page Dev", "Content Review", "POS Dashboard"],
-                  ["In Progress", "Tasks Dashboard", "Filter Dashboard"],
-                  ["Done", "Wireframe Design", "Scope Meeting"],
-                ].map(([column, ...tasks]) => (
-                  <div className="kanban-column" key={column}>
-                    <h3>{column}</h3>
-                    {tasks.map((task, index) => (
-                      <article key={task}>
-                        <h4>{task}</h4>
-                        <small>{index % 2 === 0 ? "Design" : "Dev"}</small>
-                        <div><span /><i style={{ width: `${42 + index * 18}%` }} /></div>
-                      </article>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
           </div>
         </div>
       </div>
