@@ -1,12 +1,10 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { error } from "console";
 import { NextRequest, NextResponse } from "next/server";
-import { json } from "stream/consumers";
 
 export async function PATCH(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
     const { id } = await params
     const role = req.headers.get('x-user-role')
 
@@ -50,5 +48,5 @@ export async function PATCH(
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return json(data)
+    return NextResponse.json(data)
 }

@@ -34,12 +34,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    await Promise.all([
+    try {
+        const results = await Promise.all([
       // Notify admin
       resend.emails.send({
         from: "Cardano Bounties <onboarding@resend.dev>",
         to: process.env.ADMIN_EMAIL!,
-        subject: "Nes waitlist Signup",
+        subject: "New waitlist Signup",
         html: `<p>A new user joined the waitlist: <strong>${email}</strong></p>`,
       }),
 
@@ -56,8 +57,11 @@ export async function POST(req: NextRequest) {
         <p>— The Cardano Bounties Team</p>
             `,
       }),
-    ]);
-
+    ])
+    console.log('Email results:', JSON.stringify(results))
+    } catch (err) {
+        console.error('Email error:', err)
+    }
     return NextResponse.json({ message: 'Successfully joined waitlist'}, { status: 201 })
 }
 
