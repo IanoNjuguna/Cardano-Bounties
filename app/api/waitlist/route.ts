@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
       // Confirm to user
       resend.emails.send({
-        from: "Cardano Bounties <onboarding@resend.dev>",
+        from: "Cardano Bounties <onboarding@cardanobounties.com>",
         to: email,
         subject: "You're on the waitlist!",
         html: `
