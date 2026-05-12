@@ -1,7 +1,7 @@
 export const navItems = [
-  ["Explore Bounties", "#features"],
-  ["How It Works", "#pricing"],
-  ["FAQs", "#faq"],
+  ["Explore Bounties", "/explore"],
+  ["How It Works", "/#pricing"],
+  ["FAQs", "/#faq"],
 ];
 
 export const benefits = [

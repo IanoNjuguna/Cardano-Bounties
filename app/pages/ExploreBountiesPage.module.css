@@ -1,0 +1,353 @@
+.explorePage {
+  background: #fff;
+}
+
+.exploreHero {
+  padding: 44px 0 28px;
+  background:
+    radial-gradient(#edf1f5 0.85px, transparent 0.85px) 0 0 / 12px 12px,
+    linear-gradient(135deg, transparent 0 48.8%, rgba(1, 81, 194, 0.035) 49.4% 50.6%, transparent 51.2%) 0 0 / 210px 210px,
+    #fff;
+}
+
+.exploreHeroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 44px;
+  align-items: end;
+  padding: 58px 0 44px;
+}
+
+.exploreHeroCopy h1 {
+  max-width: 720px;
+  margin: 18px 0 16px;
+  color: var(--ink);
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.exploreHeroCopy p {
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.exploreSummary {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.exploreSummary div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 15px 16px;
+}
+
+.exploreSummary span,
+.searchField span,
+.bountyMeta dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.exploreSummary strong {
+  color: var(--ink);
+  font-family: var(--font-outfit), "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.exploreBoard {
+  padding: 34px 0 86px;
+}
+
+.exploreToolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.searchField {
+  display: grid;
+  gap: 8px;
+}
+
+.searchField input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.searchField input:focus {
+  border-color: rgba(1, 81, 194, 0.5);
+  box-shadow: 0 0 0 4px var(--blue-soft);
+}
+
+.typeFilters {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.typeFilters button {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: #5f6570;
+  padding: 0 13px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.typeFilters button:hover,
+.typeFilters button.isActive {
+  border-color: transparent;
+  background: var(--blue);
+  color: #fff;
+}
+
+.bountyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.bountyCard {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  scroll-margin-top: 92px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+.bountyCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.bountyCardTop span,
+.bountyCardTop b {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.bountyCardTop span {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.bountyCardTop b {
+  background: #f6f7f8;
+  color: #69707c;
+}
+
+.bountyCard h2 {
+  color: #111318;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.bountyCard p {
+  display: -webkit-box;
+  margin-top: 12px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.75;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.bountyMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: auto 0 18px;
+  padding-top: 24px;
+}
+
+.bountyMeta div {
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.bountyMeta dd {
+  margin-top: 6px;
+  color: var(--ink);
+  font-family: var(--font-outfit), "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.bountyAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border-radius: 4px;
+  background: var(--blue);
+  color: white;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 650;
+  box-shadow: 0 14px 30px rgba(1, 81, 194, 0.22);
+}
+
+.exploreState {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 32px;
+  text-align: center;
+}
+
+.exploreState h2 {
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.exploreState p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.bountyCardSkeleton {
+  gap: 14px;
+}
+
+.bountyCardSkeleton span,
+.bountyCardSkeleton h2,
+.bountyCardSkeleton p {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eef2f7, #f8fafc, #eef2f7);
+  background-size: 240% 100%;
+  animation: bountySkeleton 1.4s ease-in-out infinite;
+}
+
+.bountyCardSkeleton span {
+  width: 112px;
+  height: 28px;
+}
+
+.bountyCardSkeleton h2 {
+  width: 80%;
+  height: 22px;
+}
+
+.bountyCardSkeleton p {
+  width: 100%;
+  height: 12px;
+  margin: 0;
+}
+
+.bountyCardSkeleton p:last-child {
+  width: 64%;
+}
+
+@keyframes bountySkeleton {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .exploreHeroGrid,
+  .exploreToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .exploreSummary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .exploreSummary div {
+    display: grid;
+    justify-content: start;
+  }
+
+  .typeFilters {
+    justify-content: flex-start;
+  }
+
+  .bountyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .exploreHeroGrid {
+    padding: 40px 0 26px;
+  }
+
+  .exploreHeroCopy h1 {
+    font-size: 42px;
+  }
+
+  .exploreSummary,
+  .bountyGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .exploreHeroCopy h1 {
+    font-size: 35px;
+  }
+
+  .bountyMeta {
+    grid-template-columns: 1fr;
+  }
+}

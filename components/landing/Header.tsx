@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import React, { useState } from "react";
 import { navItems } from "./constants";
 
@@ -14,9 +15,9 @@ export function Header() {
         aria-label="Primary navigation"
         style={{ position: "relative" }}
       >
-        <a className="brand" href="#" aria-label="Cardano Bounties home" onClick={closeMenu}>
+        <Link className="brand" href="/" aria-label="Cardano Bounties home" onClick={closeMenu}>
           <img className="brand-logo" src="/cardano_bounties_logo.png" alt="Cardano Bounties" />
-        </a>
+        </Link>
 
         <button
           className="mobile-menu"
@@ -43,13 +44,13 @@ export function Header() {
           style={isMenuOpen ? { flex: "0 0 100%" } : undefined}
         >
           {navItems.map(([item, href]) => (
-            <a key={item} href={href} onClick={closeMenu}>{item}</a>
+            <Link key={item} href={href} onClick={closeMenu}>{item}</Link>
           ))}
         </div>
 
-        <a className="nav-button" href="#waitlist" onClick={closeMenu}>
+        <Link className="nav-button" href="/#waitlist" onClick={closeMenu}>
           Join the Waitlist
-        </a>
+        </Link>
       </nav>
     </header>
   );

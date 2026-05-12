@@ -1,3 +1,4 @@
+import Link from "next/link";
 import React from "react";
 
 export function Footer() {
@@ -6,18 +7,18 @@ export function Footer() {
       <div className="container footer-shell">
         <div className="footer-main">
           <div className="footer-brand">
-            <a className="brand" href="#">
+            <Link className="brand" href="/">
               <img className="brand-logo footer-logo" src="/cardano_bounties_logo.png" alt="Cardano Bounties" />
-            </a>
+            </Link>
             <p>Learn, contribute, and earn in the Cardano ecosystem.</p>
           </div>
           <div>
             <h3>Platform</h3>
-            <a href="#features">Explore Bounties</a>
-            <a href="#pricing">How It Works</a>
-            <a href="#leaderboard">Leaderboard</a>
-            <a href="#faq">FAQs</a>
-            <a href="#waitlist">Join Waitlist</a>
+            <Link href="/explore">Explore Bounties</Link>
+            <Link href="/#pricing">How It Works</Link>
+            <Link href="/#leaderboard">Leaderboard</Link>
+            <Link href="/#faq">FAQs</Link>
+            <Link href="/#waitlist">Join Waitlist</Link>
           </div>
           <div>
             <h3>For Projects</h3>

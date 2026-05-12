@@ -22,15 +22,15 @@ export function WaitlistForm() {
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as { error?: string };
 
       if (!response.ok) {
         throw new Error(data.error || "Something went wrong. Please try again.");
       }
 
       setSubmitted(true);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
