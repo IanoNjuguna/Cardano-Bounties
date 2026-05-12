@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import React, { useState } from "react";
+import { WalletConnect } from "@/components/wallet/WalletConnect";
 import { navItems } from "./constants";
 
 export function Header() {
@@ -48,9 +49,9 @@ export function Header() {
           ))}
         </div>
 
-        <Link className="nav-button" href="/#waitlist" onClick={closeMenu}>
-          Join the Waitlist
-        </Link>
+        <div className="nav-wallet">
+          <WalletConnect />
+        </div>
       </nav>
     </header>
   );

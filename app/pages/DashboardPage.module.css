@@ -1,0 +1,454 @@
+.dashboardShell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  background: #f7f9fb;
+  color: var(--ink);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 22px 18px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+}
+
+.brand img {
+  width: 158px;
+  height: auto;
+  display: block;
+}
+
+.roleCard {
+  display: grid;
+  gap: 7px;
+  margin: 28px 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 88% 14%, rgba(1, 81, 194, 0.1), transparent 34%),
+    #fff;
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.roleCard span,
+.metricCard span,
+.panelHeader span,
+.healthPanel span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.roleCard strong {
+  color: #111318;
+  font-family: var(--font-outfit), "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.sideNav {
+  display: grid;
+  gap: 6px;
+}
+
+.sideNav a {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 9px;
+  color: #5f6570;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 650;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.sideNav a:hover,
+.sideNav .activeNav {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.sideNav b {
+  min-width: 24px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--blue);
+  padding: 3px 7px;
+  text-align: center;
+  font-size: 10px;
+  box-shadow: inset 0 0 0 1px rgba(1, 81, 194, 0.12);
+}
+
+.backLink {
+  display: inline-flex;
+  justify-content: center;
+  min-height: 38px;
+  align-items: center;
+  margin-top: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: #353a43;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.dashboardMain {
+  min-width: 0;
+  padding: 32px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.topbar h1 {
+  max-width: 720px;
+  margin-top: 16px;
+  color: #111318;
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.topbar p {
+  max-width: 640px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.roleSwitch {
+  display: inline-flex;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  padding: 5px;
+  box-shadow: var(--shadow-soft);
+}
+
+.roleSwitch button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6f7784;
+  padding: 0 13px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.roleSwitch .selectedRole {
+  background: var(--blue);
+  color: #fff;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.metricCard,
+.panel,
+.healthPanel,
+.tablePanel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.metricCard {
+  min-height: 132px;
+  padding: 18px;
+}
+
+.metricCard strong {
+  display: block;
+  margin-top: 14px;
+  color: #111318;
+  font-family: var(--font-outfit), "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.metricCard p {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.panel,
+.tablePanel,
+.healthPanel {
+  padding: 18px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.panelHeader h2 {
+  margin-top: 5px;
+  color: #111318;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.panelHeader button,
+.panelHeader a {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: #353a43;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.queueList {
+  display: grid;
+  gap: 10px;
+}
+
+.queueItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: #fbfcfe;
+  padding: 14px;
+}
+
+.queueItem h3 {
+  color: #20242b;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.queueItem p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.queueItem span {
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.queueItem strong {
+  color: #111318;
+  font-family: var(--font-outfit), "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.healthPanel {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 80% 0%, rgba(1, 81, 194, 0.12), transparent 32%),
+    #fff;
+}
+
+.healthPanel strong {
+  display: block;
+  margin-top: 18px;
+  color: #111318;
+  font-family: var(--font-outfit), "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 48px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.progressTrack {
+  height: 9px;
+  overflow: hidden;
+  margin: 20px 0;
+  border-radius: 999px;
+  background: #e7ecf2;
+}
+
+.progressTrack i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue);
+}
+
+.healthPanel p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.activityTable {
+  display: grid;
+  gap: 6px;
+}
+
+.tableHead,
+.tableRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(120px, 0.8fr) minmax(120px, 0.7fr) minmax(110px, 0.6fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.tableHead {
+  color: var(--muted);
+  padding: 0 12px 8px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tableRow {
+  min-height: 50px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: #fbfcfe;
+  padding: 0 12px;
+  color: #4c5562;
+  font-size: 12px;
+}
+
+.tableRow span:first-child {
+  color: #20242b;
+  font-weight: 650;
+}
+
+.tableRow b {
+  display: inline-flex;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+@media (max-width: 1100px) {
+  .dashboardShell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sideNav {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .sideNav a {
+    flex: 0 0 auto;
+  }
+
+  .backLink {
+    display: none;
+  }
+
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspaceGrid,
+  .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .roleSwitch {
+    width: max-content;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboardMain,
+  .sidebar {
+    padding: 18px;
+  }
+
+  .topbar h1 {
+    font-size: 34px;
+  }
+
+  .metricGrid,
+  .queueItem {
+    grid-template-columns: 1fr;
+  }
+
+  .roleSwitch {
+    width: 100%;
+    border-radius: 12px;
+  }
+
+  .roleSwitch button {
+    flex: 1;
+  }
+
+  .tablePanel {
+    overflow-x: auto;
+  }
+
+  .activityTable {
+    min-width: 680px;
+  }
+}

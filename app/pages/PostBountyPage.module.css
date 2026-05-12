@@ -1,0 +1,352 @@
+.postPage {
+  background: #fff;
+}
+
+.postHero {
+  padding: 44px 0 28px;
+  background:
+    radial-gradient(#edf1f5 0.85px, transparent 0.85px) 0 0 / 12px 12px,
+    linear-gradient(135deg, transparent 0 48.8%, rgba(1, 81, 194, 0.035) 49.4% 50.6%, transparent 51.2%) 0 0 / 210px 210px,
+    #fff;
+}
+
+.postHeroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 44px;
+  align-items: end;
+  padding: 58px 0 44px;
+}
+
+.postHeroCopy h1 {
+  max-width: 720px;
+  margin: 18px 0 16px;
+  color: var(--ink);
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.postHeroCopy p {
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.briefPreview,
+.bountyForm,
+.guidancePanel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.briefPreview {
+  padding: 20px;
+}
+
+.briefPreview > span,
+.formHeader span,
+.guidancePanel > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.briefPreview h2 {
+  margin-top: 16px;
+  color: #111318;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.briefPreview p {
+  display: -webkit-box;
+  min-height: 64px;
+  margin-top: 12px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.briefPreview dl {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.briefPreview div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.briefPreview dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.briefPreview dd {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 750;
+  text-align: right;
+}
+
+.formSection {
+  padding: 34px 0 86px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 22px;
+  align-items: start;
+}
+
+.bountyForm,
+.guidancePanel {
+  padding: 24px;
+}
+
+.formHeader {
+  margin-bottom: 22px;
+}
+
+.formHeader h2,
+.guidancePanel h2 {
+  margin-top: 8px;
+  color: #111318;
+  font-size: 22px;
+  font-weight: 650;
+}
+
+.formHeader p,
+.guidancePanel p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.fieldGroup {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.fieldGroup label {
+  color: #343942;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.fieldGroup input,
+.fieldGroup select,
+.fieldGroup textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.fieldGroup input,
+.fieldGroup select {
+  height: 44px;
+}
+
+.fieldGroup textarea {
+  min-height: 180px;
+  padding-top: 13px;
+  resize: vertical;
+}
+
+.fieldGroup input:focus,
+.fieldGroup select:focus,
+.fieldGroup textarea:focus {
+  border-color: rgba(1, 81, 194, 0.5);
+  box-shadow: 0 0 0 4px var(--blue-soft);
+}
+
+.fieldGroup input[aria-invalid="true"],
+.fieldGroup textarea[aria-invalid="true"] {
+  border-color: #dc2626;
+}
+
+.fieldGroup > span {
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.splitFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.formActions button,
+.formActions a {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0 18px;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.formActions button {
+  border: 0;
+  background: var(--blue);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(1, 81, 194, 0.22);
+}
+
+.formActions button:disabled {
+  background: #d8dee8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.formActions a {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #353a43;
+}
+
+.successMessage,
+.errorMessage {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  padding: 13px 14px;
+  font-size: 12px;
+}
+
+.successMessage {
+  border: 1px solid rgba(22, 163, 74, 0.22);
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.successMessage strong {
+  font-size: 13px;
+}
+
+.errorMessage {
+  border: 1px solid rgba(220, 38, 38, 0.22);
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 650;
+}
+
+.guidancePanel {
+  position: sticky;
+  top: 92px;
+}
+
+.guidancePanel ul {
+  display: grid;
+  gap: 11px;
+  margin: 18px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guidancePanel li {
+  position: relative;
+  padding-left: 22px;
+  color: #4b5563;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.guidancePanel li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--blue);
+}
+
+.guidancePanel div {
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.guidancePanel strong {
+  color: #111318;
+  font-size: 13px;
+}
+
+@media (max-width: 1024px) {
+  .postHeroGrid,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .guidancePanel {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .postHeroGrid {
+    padding: 40px 0 26px;
+  }
+
+  .postHeroCopy h1 {
+    font-size: 42px;
+  }
+
+  .splitFields {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .postHeroCopy h1 {
+    font-size: 35px;
+  }
+
+  .formActions button,
+  .formActions a {
+    width: 100%;
+  }
+}

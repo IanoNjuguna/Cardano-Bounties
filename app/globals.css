@@ -170,8 +170,12 @@ svg {
   color: var(--ink);
 }
 
-.nav-button {
+.nav-button,
+.nav-wallet {
   flex-shrink: 0;
+}
+
+.nav-button {
   min-width: 92px;
   border-radius: 4px;
   background: var(--blue);
@@ -2489,7 +2493,8 @@ svg {
 
 @media (max-width: 560px) {
   .nav-links,
-  .nav-button {
+  .nav-button,
+  .nav-wallet {
     display: none;
   }
 
@@ -2514,7 +2519,8 @@ svg {
   }
 
   .nav-shell.is-open .nav-links,
-  .nav-shell.is-open .nav-button {
+  .nav-shell.is-open .nav-button,
+  .nav-shell.is-open .nav-wallet {
     display: flex;
     width: 100%;
   }
@@ -2533,7 +2539,8 @@ svg {
     padding: 10px;
   }
 
-  .nav-shell.is-open .nav-button {
+  .nav-shell.is-open .nav-button,
+  .nav-shell.is-open .nav-wallet {
     margin-top: 16px;
     padding: 12px;
     font-size: 15px;
