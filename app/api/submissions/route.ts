@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // POST
 export async function POST(req: NextRequest) {
 
-    const contributorId = req.headers.get('x-user-id')
+    const contributorId = req.headers.get('x-user-id') || req.headers.get('x-wallet-address')
 
     if (!contributorId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

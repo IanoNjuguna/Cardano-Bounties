@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import styles from "./ExploreBountiesPage.module.css";
@@ -237,9 +238,9 @@ export function ExploreBountiesPage() {
                       <dd>{formatDate(bounty.deadline)}</dd>
                     </div>
                   </dl>
-                  <a className={styles.bountyAction} href={`#${bounty.id}`}>
+                  <Link className={styles.bountyAction} href={`/bounties/${bounty.id}`}>
                     View bounty
-                  </a>
+                  </Link>
                 </article>
               ))}
             </div>
