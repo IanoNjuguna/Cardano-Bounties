@@ -6,7 +6,8 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 // Routes that require authentication
 const ProtectedRoutes = [
     '/api/submissions',
-    '/api/admin'
+    '/api/admin',
+    '/api/users'
 ]
 
 // Routes that require admin role
