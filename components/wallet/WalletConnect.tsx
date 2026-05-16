@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { BrowserWallet } from "@meshsdk/core";
-import type { Wallet } from "@meshsdk/common";
+import { useAppWallet } from "./WalletProvider";
 import styles from "./WalletConnect.module.css";
 
 function shortenAddress(address: string) {
@@ -11,16 +10,21 @@ function shortenAddress(address: string) {
 }
 
 export function WalletConnect() {
-  const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [wallet, setWallet] = useState<BrowserWallet | null>(null);
-  const [walletName, setWalletName] = useState("");
-  const [address, setAddress] = useState("");
-  const [connecting, setConnecting] = useState(false);
+  const {
+    address,
+    connected,
+    connecting,
+    connectWallet,
+    disconnectWallet,
+    error,
+    loadWallets,
+    walletName,
+    wallets,
+  } = useAppWallet();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState("");
-  const [error, setError] = useState("");
+  const [localError, setLocalError] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
-  const connected = Boolean(wallet && address);
 
   useEffect(() => {
     function closeOnOutsideClick(event: MouseEvent) {
@@ -33,45 +37,18 @@ export function WalletConnect() {
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, []);
 
-  async function loadWallets() {
-    setError("");
-
-    try {
-      const { BrowserWallet } = await import("@meshsdk/core");
-      setWallets(await BrowserWallet.getAvailableWallets());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to detect wallet extensions.");
-    }
-  }
-
   async function handleConnect(walletId: string) {
-    setConnecting(true);
     setSelectedWallet(walletId);
-    setError("");
+    setLocalError("");
 
     try {
-      const { BrowserWallet } = await import("@meshsdk/core");
-      const connectedWallet = await BrowserWallet.enable(walletId);
-      const usedAddresses = await connectedWallet.getUsedAddresses();
-      const changeAddress = await connectedWallet.getChangeAddress();
-
-      setWallet(connectedWallet);
-      setWalletName(wallets.find((availableWallet) => availableWallet.id === walletId)?.name || walletId);
-      setAddress(usedAddresses[0] || changeAddress || "");
+      await connectWallet(walletId);
       setIsOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to connect wallet.");
+      setLocalError(err instanceof Error ? err.message : "Unable to connect wallet.");
     } finally {
-      setConnecting(false);
       setSelectedWallet("");
     }
-  }
-
-  function handleDisconnect() {
-    setWallet(null);
-    setWalletName("");
-    setAddress("");
-    setIsOpen(false);
   }
 
   if (connected) {
@@ -93,7 +70,7 @@ export function WalletConnect() {
               <span>Connected wallet</span>
               <strong>{shortenAddress(address)}</strong>
             </div>
-            <button className={styles.disconnectButton} type="button" onClick={handleDisconnect}>
+            <button className={styles.disconnectButton} type="button" onClick={disconnectWallet}>
               Disconnect
             </button>
           </div>
@@ -112,7 +89,7 @@ export function WalletConnect() {
             if (!current) void loadWallets();
             return !current;
           });
-          setError("");
+          setLocalError("");
         }}
         aria-expanded={isOpen}
       >
@@ -145,7 +122,7 @@ export function WalletConnect() {
             )}
           </div>
 
-          {error ? <p className={styles.errorState}>{error}</p> : null}
+          {localError || error ? <p className={styles.errorState}>{localError || error}</p> : null}
         </div>
       ) : null}
     </div>
