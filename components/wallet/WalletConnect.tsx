@@ -14,13 +14,17 @@ export function WalletConnect() {
     address,
     connected,
     connecting,
+    signingIn,
+    isAuthenticated,
     connectWallet,
     disconnectWallet,
+    reauthenticate,
     error,
     loadWallets,
     walletName,
     wallets,
   } = useAppWallet();
+
   const [isOpen, setIsOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState("");
   const [localError, setLocalError] = useState("");
@@ -51,7 +55,17 @@ export function WalletConnect() {
     }
   }
 
-  if (connected) {
+  async function handleReauthenticate() {
+    setLocalError("");
+    try {
+      await reauthenticate();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Authentication signature failed.");
+    }
+  }
+
+  // 1. Connected and Authenticated (JWT valid)
+  if (connected && isAuthenticated) {
     return (
       <div className={styles.walletRoot} ref={rootRef}>
         <button
@@ -67,7 +81,7 @@ export function WalletConnect() {
         {isOpen ? (
           <div className={styles.walletMenu}>
             <div className={styles.walletStatus}>
-              <span>Connected wallet</span>
+              <span>Authenticated Session</span>
               <strong>{shortenAddress(address)}</strong>
             </div>
             <button className={styles.disconnectButton} type="button" onClick={disconnectWallet}>
@@ -79,6 +93,46 @@ export function WalletConnect() {
     );
   }
 
+  // 2. Connected but Not Authenticated (JWT expired/missing)
+  if (connected && !isAuthenticated) {
+    return (
+      <div className={styles.walletRoot} ref={rootRef}>
+        <div className={styles.reAuthWrapper}>
+          <button
+            className={styles.connectButton}
+            type="button"
+            onClick={handleReauthenticate}
+            disabled={signingIn}
+          >
+            {signingIn ? (
+              <>
+                <span className={styles.signingDot} />
+                <span>Signing in...</span>
+              </>
+            ) : (
+              "Sign to authenticate"
+            )}
+          </button>
+          <button
+            className={styles.reAuthDisconnect}
+            type="button"
+            onClick={disconnectWallet}
+            title="Disconnect wallet"
+            aria-label="Disconnect wallet"
+          >
+            ✕
+          </button>
+        </div>
+        {localError || error ? (
+          <p className={styles.reAuthError}>
+            {localError || error}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  // 3. Not Connected
   return (
     <div className={styles.walletRoot} ref={rootRef}>
       <button
