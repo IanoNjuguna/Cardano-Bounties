@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import { useAppWallet } from "@/components/wallet/WalletProvider";
+import { authFetch } from "@/lib/api";
 import styles from "./BountyDetailsPage.module.css";
 
 type Bounty = {
@@ -81,7 +82,7 @@ function normalizeStatus(status: string | null) {
 }
 
 export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
-  const { address, connected } = useAppWallet();
+  const { address, connected, isAuthenticated } = useAppWallet();
   const [bounty, setBounty] = useState<Bounty | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -138,6 +139,11 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
       return;
     }
 
+    if (!isAuthenticated) {
+      setSubmissionError("Please sign in to authenticate your wallet before submitting your work.");
+      return;
+    }
+
     if (!contributionLink.trim() && !contributionNotes.trim()) {
       setSubmissionError("Add a contribution link or reviewer notes before submitting.");
       return;
@@ -153,12 +159,8 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
         .filter(Boolean)
         .join("\n\n");
 
-      const response = await fetch("/api/submissions", {
+      const response = await authFetch("/api/submissions", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": address,
-        },
         body: JSON.stringify({ bounty_id: bountyId, content }),
       });
 
@@ -172,9 +174,9 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
       setBounty((current) =>
         current
           ? {
-              ...current,
-              submissions: [createdSubmission, ...(current.submissions || [])],
-            }
+            ...current,
+            submissions: [createdSubmission, ...(current.submissions || [])],
+          }
           : current,
       );
       setContributionLink("");
@@ -372,7 +374,7 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
                       type="url"
                       placeholder="https://github.com/example/submission"
                       value={contributionLink}
-                      disabled={!connected || isSubmitting}
+                      disabled={!connected || !isAuthenticated || isSubmitting}
                       onChange={(event) => setContributionLink(event.target.value)}
                     />
                   </div>
@@ -384,16 +386,22 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
                       rows={6}
                       placeholder="Summarize what you completed and anything the reviewer should know."
                       value={contributionNotes}
-                      disabled={!connected || isSubmitting}
+                      disabled={!connected || !isAuthenticated || isSubmitting}
                       onChange={(event) => setContributionNotes(event.target.value)}
                     />
                   </div>
 
                   <div className={styles.submitActions}>
-                    <button type="submit" disabled={!connected || isSubmitting}>
+                    <button type="submit" disabled={!connected || !isAuthenticated || isSubmitting}>
                       {isSubmitting ? "Submitting..." : "Submit contribution"}
                     </button>
-                    <span>{connected ? `Submitting as ${formatContributor(address)}` : "Connect wallet first"}</span>
+                    <span>
+                      {!connected
+                        ? "Connect wallet first"
+                        : !isAuthenticated
+                        ? "Sign wallet verification first"
+                        : `Submitting as ${formatContributor(address)}`}
+                    </span>
                   </div>
                 </form>
               </div>

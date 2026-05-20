@@ -44,6 +44,11 @@ export const features = [
     text: "Research protocols, analyze data, moderate forums, run events, translate content, and onboard newcomers.",
     type: "collaboration",
   },
+  {
+    title: "Hackathons & Events",
+    text: "Participate in global Cardano hackathons, build innovative dApps, compete for major ADA prize pools, and win team bounties.",
+    type: "hackathons",
+  },
 ];
 
 export const plans = [

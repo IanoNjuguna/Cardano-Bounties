@@ -17,13 +17,10 @@ const adminRoutes = [
 
 export function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl
-    const isWalletOnlySubmission = pathname === '/api/submissions' && req.method === 'POST'
 
     // Check if route needs protection
     const isProtected = ProtectedRoutes.some(route => pathname.startsWith(route))
     const isAdmin = adminRoutes.some(route => pathname.startsWith(route))
-
-    if (isWalletOnlySubmission) return NextResponse.next()
 
     if (!isProtected) return NextResponse.next()
     
