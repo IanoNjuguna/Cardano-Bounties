@@ -1,6 +1,8 @@
-import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
 import { Resend } from "resend";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -34,6 +36,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    const templatePath = join(process.cwd(), 'public', 'message.html')
+    let html = readFileSync(templatePath, 'utf-8')
+
+    html = html.replace('$new Date().getFullYear()}', new Date().getFullYear().toString())
+
     try {
         const results = await Promise.all([
       // Notify admin
@@ -48,14 +55,8 @@ export async function POST(req: NextRequest) {
       resend.emails.send({
         from: "Cardano Bounties <onboarding@resend.dev>",
         to: email,
-        subject: "You're on the waitlist!",
-        html: `
-            <h2>You're on the list! 🎉</h2>
-        <p>Thanks for joining the Cardano Bounties waitlist. We'll notify you as soon as we launch.</p>
-        <p>In the meantime, follow our progress on GitHub.</p>
-        <br/>
-        <p>— The Cardano Bounties Team</p>
-            `,
+        subject: "You're on the Cardano Bounties waitlist!",
+        html,
       }),
     ])
     console.log('Email results:', JSON.stringify(results))
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
 }
 
 // GET /api/waitlist -- get waitlist count
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
     const { count, error } = await supabaseAdmin
         .from('waitlist')
         .select('*', { count: 'exact', head: true })
