@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig= {
-    serverComponentsExternalPackages: ['@meshsdk/core', '@meshsdk/core-cst'],
+    serverComponentsExternalPackages: ['@meshsdk/core', '@meshsdk/core-csl'],
     turbopack: {},
     webpack: (config) => {
         config.experiments = {
