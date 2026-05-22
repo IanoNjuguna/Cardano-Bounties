@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       resend.emails.send({
         from: "Cardano Bounties <onboarding@resend.dev>",
         to: process.env.ADMIN_EMAIL!,
-        subject: "New waitlist Signup",
+        subject: "New Waitlist Signup",
         html: `<p>A new user joined the waitlist: <strong>${email}</strong></p>`,
       }),
 
