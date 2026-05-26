@@ -18,8 +18,13 @@ const adminRoutes = [
 export function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl
 
+    // GET /api/bounties is public
+    // POST /api/bounties requires auth
+
     // Check if route needs protection
-    const isProtected = ProtectedRoutes.some(route => pathname.startsWith(route))
+    const isProtected = (pathname === 'api/bounties' && req.method === 'POST') ||
+    ProtectedRoutes.some(route => pathname.startsWith(route))
+
     const isAdmin = adminRoutes.some(route => pathname.startsWith(route))
 
     if (!isProtected) return NextResponse.next()
