@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { BOUNTY_STATUS, validateCreateBountyPayload } from "@/lib/bountyContract";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // Get /api/bounties
@@ -24,22 +25,25 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
     }
 
     const body = await req.json()
-    const { title, description, type, reward_amount, deadline, project_id } = body
+    const validated = validateCreateBountyPayload(body)
 
-    // Validation
-    if (!title || !description || !type) {
+    if (!validated.ok) {
         return NextResponse.json(
-            { error: 'title, description and type are required' },
-            {status: 400 }
-        )
-    }
-
-    if (!reward_amount || reward_amount <= 0) {
-        return NextResponse.json(
-            { error: 'reward_amount is required and musr be greater than 0'},
+            { error: validated.error, field: validated.field },
             { status: 400 }
         )
     }
+
+    const {
+        title,
+        description,
+        type,
+        reward_amount,
+        platform_fee_amount,
+        total_funding_amount,
+        deadline,
+        project_id,
+    } = validated.value
 
     const {data, error} = await supabaseAdmin
     .from('bounties')
@@ -47,10 +51,13 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
         description,
         type,
         reward_amount,
+        platform_fee_amount,
+        total_funding_amount,
         deadline,
         project_id,
         created_by: userId,
-        status: 'pending_escrow'
+
+        status: BOUNTY_STATUS.PendingEscrow
     })
     .select()
     .single()

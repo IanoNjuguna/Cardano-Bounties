@@ -12,7 +12,7 @@ const ProtectedRoutes = [
 
 // Routes that require admin role
 const adminRoutes = [
-    'api/admin'
+    '/api/admin'
 ]
 
 export function proxy(req: NextRequest) {
@@ -22,8 +22,11 @@ export function proxy(req: NextRequest) {
     // POST /api/bounties requires auth
 
     // Check if route needs protection
-    const isProtected = (pathname === 'api/bounties' && req.method === 'POST') ||
-    ProtectedRoutes.some(route => pathname.startsWith(route))
+    const isBountyMutation =
+        (pathname === '/api/bounties' && req.method === 'POST') ||
+        (pathname.startsWith('/api/bounties/') && req.method !== 'GET')
+
+    const isProtected = isBountyMutation || ProtectedRoutes.some(route => pathname.startsWith(route))
 
     const isAdmin = adminRoutes.some(route => pathname.startsWith(route))
 

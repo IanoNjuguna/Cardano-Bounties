@@ -1,68 +1,96 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyEscrowPayment } from "@/lib/blockfrost";
+import { adaToLovelace } from "@/lib/cardano/amounts";
+import { BOUNTY_STATUS, validateEscrowPayload } from "@/lib/bountyContract";
 import { supabaseAdmin } from "@/lib/supabase";
 
-// POST /api/bounties/[id]/escrow -- save transaction hash after poster locks ADA
-export async function POST(req: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-    const { id } = await params
-    const userId = req.headers.get('x-user-id')
+  const { id } = await params;
+  const userId = req.headers.get("x-user-id");
 
-    if (!userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    const body = await req.json()
-    const { escrow_tx_hash, escrow_address } = body
+  const body = await req.json();
+  const configuredEscrowAddress =
+    process.env.ESCROW_ADDRESS || process.env.NEXT_PUBLIC_ESCROW_ADDRESS;
 
-    if (!escrow_tx_hash || !escrow_address) {
-        return NextResponse.json(
-            { error: 'escrow_hash and escrow_address are required' },
-            { status: 400 }
-        )
-    }
+  if (!configuredEscrowAddress) {
+    return NextResponse.json(
+      { error: "Escrow address is not configured" },
+      { status: 500 },
+    );
+  }
 
-    // Check bounty exists and belong to this user
-    const { data: bounty, error: fetchError } = await supabaseAdmin
-    .from('bounties')
-    .select('id, status, created_by')
-    .eq('id', id)
-    .single()
+  const validated = validateEscrowPayload(body, configuredEscrowAddress);
 
-    if (fetchError || !bounty ) {
-        return NextResponse.json({ error: 'Bounty not found' }, {status: 404 })
-    }
+  if (!validated.ok) {
+    return NextResponse.json(
+      { error: validated.error, field: validated.field },
+      { status: 400 },
+    );
+  }
 
-    if (bounty.created_by !== userId) {
-        return NextResponse.json(
-            { error: 'You can only escrow your own bounties '},
-            { status: 403 }
-        )
-    }
+  const { escrow_tx_hash, escrow_address } = validated.value;
 
-    if (bounty.status !== 'pending_escrow') {
-        return NextResponse.json(
-            { error: 'Bounty is not in pending_escrow status' },
-            { status: 400 }
-        )
-    }
+  const { data: bounty, error: fetchError } = await supabaseAdmin
+    .from("bounties")
+    .select("id, status, created_by, total_funding_amount")
+    .eq("id", id)
+    .single();
 
-    // Save transaction hash and move to awaiting_admin_review
-    const { data, error } = await supabaseAdmin
-    .from('bounties')
+  if (fetchError || !bounty) {
+    return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
+  }
+
+  if (bounty.created_by !== userId) {
+    return NextResponse.json(
+      { error: "You can only escrow your own bounties" },
+      { status: 403 },
+    );
+  }
+
+  if (bounty.status !== BOUNTY_STATUS.PendingEscrow) {
+    return NextResponse.json(
+      { error: "Bounty is not in pending_escrow status" },
+      { status: 400 },
+    );
+  }
+
+  const expectedLovelace = adaToLovelace(Number(bounty.total_funding_amount));
+  const verification = await verifyEscrowPayment({
+    txHash: escrow_tx_hash,
+    escrowAddress: escrow_address,
+    expectedLovelace,
+  });
+
+  if (!verification.ok) {
+    return NextResponse.json(
+      { error: verification.error },
+      { status: verification.status || 400 },
+    );
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("bounties")
     .update({
-        escrow_address,
-        escrow_tx_hash,
-        escrow_submitted_at: new Date().toISOString(),
-        status: 'awaiting_admin_review',
-        updated_at: new Date().toISOString()
+      escrow_tx_hash,
+      escrow_address,
+      escrow_submitted_at: new Date().toISOString(),
+      escrow_confirmed_at: new Date().toISOString(),
+      status: BOUNTY_STATUS.AwaitingAdminReview,
     })
-    .eq('id', id)
+    .eq("id", id)
     .select()
-    .single()
+    .single();
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-    return NextResponse.json(data)
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data);
 }

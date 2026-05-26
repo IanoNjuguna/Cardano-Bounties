@@ -90,6 +90,8 @@ create table bounties (
   description     text not null,
   type            text not null,          -- 'bug_fix' | 'feature' | 'content' | 'design' | 'other'
   reward_amount   numeric not null,       -- in ADA
+  platform_fee_amount numeric not null default 0,
+  total_funding_amount numeric not null default 0,
   deadline        timestamptz,
   status          text not null default 'pending_escrow',
   -- status flow:
@@ -97,8 +99,13 @@ create table bounties (
   --                                               → cancelled
   --                                               → expired
   --                        → rejected
-  escrow_tx_hash  text,                   -- on-chain confirmation
+  escrow_address  text,
+  escrow_tx_hash  text,                   -- submitted on-chain tx hash
+  escrow_submitted_at timestamptz,
+  escrow_confirmed_at timestamptz,
   payout_tx_hash  text,                   -- set when payment is released
+  refund_tx_hash  text,
+  refunded_at     timestamptz,
   created_by      text not null,          -- wallet_addr of poster
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
@@ -166,6 +173,9 @@ ADMIN_STAKE_KEY=                   # Stake key of the admin wallet
 
 # Escrow
 ESCROW_ADDRESS=                    # Cardano address where bounty ADA is held
+NEXT_PUBLIC_ESCROW_ADDRESS=        # Same preprod escrow address exposed to the browser wallet flow
+BLOCKFROST_PREPROD_PROJECT_ID=     # Server-only Blockfrost preprod project id
+BLOCKFROST_MIN_CONFIRMATIONS=1     # Optional; defaults to 1
 ```
 
 ---
