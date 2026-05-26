@@ -37,19 +37,20 @@
 
 ### Bounties API
 - ✅ `GET /api/bounties` — list open bounties
-- ✅ `POST /api/bounties` — create bounty
+- ✅ `POST /api/bounties` — create bounty with server-side validation and `pending_escrow` status
 - ✅ `GET /api/bounties/[id]` — single bounty detail
-- ✅ `PATCH /api/bounties/[id]` — update bounty status (stub)
-- ✅ `DELETE /api/bounties/[id]` — cancel bounty (stub)
+- ✅ `POST /api/bounties/[id]/escrow` — record escrow tx hash and move to admin review
+- ✅ `PATCH /api/bounties/[id]` — admin approve/reject bounties awaiting review
+- ✅ `DELETE /api/bounties/[id]` — poster invalidates unfunded pending escrow bounty
 
 ### Submissions API
 - ✅ `POST /api/submissions` — submit work (with duplicate guard)
 - ✅ `GET /api/submissions/[id]` — submission detail (stub)
-- 📋 `PATCH /api/submissions/[id]` — admin approve/reject
+- ✅ `PATCH /api/submissions/[id]` — admin approve/reject pending submissions
 
 ### Admin API
-- 📋 `POST /api/admin/release-payment` — trigger ADA payout
-- 📋 `POST /api/admin/refund` — trigger ADA refund to poster
+- ✅ `POST /api/admin/release-payment` — record payout tx and close bounty/submissions
+- ✅ `POST /api/admin/refund` — record refund tx and close pending submissions
 
 ---
 
@@ -59,6 +60,7 @@
 - 📋 Escrow transaction builder (`lib/mesh.ts` — `buildEscrowTx`)
 - 📋 Payout transaction builder (`lib/mesh.ts` — `buildPayoutTx`)
 - 📋 On-chain tx confirmation polling (after escrow deposit)
+- 📋 On-chain payout/refund transaction construction and verification
 - 📋 Escrow address configured in environment variables
 
 ---

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyEscrowPayment } from "@/lib/blockfrost";
+import { adaToLovelace } from "@/lib/cardano/amounts";
+import { BOUNTY_STATUS, validateEscrowPayload } from "@/lib/bountyContract";
 import { supabaseAdmin } from "@/lib/supabase";
-import { error } from "console";
 
 // POST /api/bounties/[id]/escrow -- save transaction hash after poster locks ADA
 export async function POST(req: NextRequest,
@@ -14,19 +16,29 @@ export async function POST(req: NextRequest,
     }
 
     const body = await req.json()
-    const { transaction_hash, escrow_address } = body
+    const configuredEscrowAddress = process.env.ESCROW_ADDRESS || process.env.NEXT_PUBLIC_ESCROW_ADDRESS
+    const validated = validateEscrowPayload(body, configuredEscrowAddress)
 
-    if (!transaction_hash || !escrow_address) {
+    if (!configuredEscrowAddress) {
         return NextResponse.json(
-            { error: 'transaction_hash and escrow_address are required' },
+            { error: 'Escrow address is not configured' },
+            { status: 500 }
+        )
+    }
+
+    if (!validated.ok) {
+        return NextResponse.json(
+            { error: validated.error, field: validated.field },
             { status: 400 }
         )
     }
 
+    const { escrow_tx_hash, escrow_address } = validated.value
+
     // Check bounty exists and belong to this user
     const { data: bounty, error: fetchError } = await supabaseAdmin
     .from('bounties')
-    .select('id, status, created_by')
+    .select('id, status, created_by, total_funding_amount')
     .eq('id', id)
     .single()
 
@@ -41,10 +53,24 @@ export async function POST(req: NextRequest,
         )
     }
 
-    if (bounty.status !== 'pending_approval') {
+    if (bounty.status !== BOUNTY_STATUS.PendingEscrow) {
         return NextResponse.json(
-            { error: 'Bounty is not in pending_approval status' },
+            { error: 'Bounty is not in pending_escrow status' },
             { status: 400 }
+        )
+    }
+
+    const expectedLovelace = adaToLovelace(Number(bounty.total_funding_amount))
+    const verification = await verifyEscrowPayment({
+        txHash: escrow_tx_hash,
+        escrowAddress: escrow_address,
+        expectedLovelace,
+    })
+
+    if (!verification.ok) {
+        return NextResponse.json(
+            { error: verification.error },
+            { status: verification.status || 400 }
         )
     }
 
@@ -52,9 +78,11 @@ export async function POST(req: NextRequest,
     const { data, error } = await supabaseAdmin
     .from('bounties')
     .update({
-        transaction_hash,
+        escrow_tx_hash,
         escrow_address,
-        status: 'awaiting_admin_review'
+        escrow_submitted_at: new Date().toISOString(),
+        escrow_confirmed_at: new Date().toISOString(),
+        status: BOUNTY_STATUS.AwaitingAdminReview
     })
     .eq('id', id)
     .select()

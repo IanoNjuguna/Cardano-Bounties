@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { BOUNTY_STATUS } from "@/lib/bountyContract";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export async function GET(
@@ -48,9 +49,9 @@ export async function PATCH(
   const body = await req.json()
   const { status } = body
   
-  if (!status || !['open', 'cancelled'].includes(status)) {
+  if (!status || ![BOUNTY_STATUS.Open, BOUNTY_STATUS.Rejected].includes(status)) {
     return NextResponse.json(
-      {error: 'status must be open (approve) or cancelled (reject)' },
+      {error: 'status must be open (approve) or rejected (reject)' },
       { status: 400 }
     )
   }
@@ -66,7 +67,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Bounty not found' }, { status: 404 })
   }
 
-  if (bounty.status !== 'awaiting_admin_review') {
+  if (bounty.status !== BOUNTY_STATUS.AwaitingAdminReview) {
     return NextResponse.json(
       { error: 'Bounty is not awaiting admin review' },
       { status: 400 }
@@ -75,7 +76,7 @@ export async function PATCH(
 
   const { data, error } = await supabaseAdmin
   .from('bounties')
-  .update({ status })
+  .update({ status, updated_at: new Date().toISOString() })
   .eq('id', id)
   .select()
   .single()
@@ -84,4 +85,51 @@ export async function PATCH(
   return NextResponse.json({ error: error.message }, { status: 500 })
 }
 return NextResponse.json(data)
+}
+
+// DELETE /api/bounties/[id] -- poster invalidates an unfunded bounty
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  const { id } = await params;
+  const userId = req.headers.get("x-user-id");
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { data: bounty, error: fetchError } = await supabaseAdmin
+    .from("bounties")
+    .select("id, status, created_by")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !bounty) {
+    return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
+  }
+
+  if (bounty.created_by !== userId) {
+    return NextResponse.json({ error: "You can only invalidate your own bounty" }, { status: 403 });
+  }
+
+  if (bounty.status !== BOUNTY_STATUS.PendingEscrow) {
+    return NextResponse.json(
+      { error: "Only unfunded pending bounties can be invalidated" },
+      { status: 400 },
+    );
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("bounties")
+    .update({ status: BOUNTY_STATUS.Cancelled, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data);
 }
