@@ -46,7 +46,7 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const { status, feedback } = body
+  const { status } = body
   
   if (!status || !['open', 'cancelled'].includes(status)) {
     return NextResponse.json(
