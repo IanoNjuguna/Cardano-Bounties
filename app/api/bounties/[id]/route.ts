@@ -48,9 +48,9 @@ export async function PATCH(
   const body = await req.json()
   const { status } = body
   
-  if (!status || !['open', 'cancelled'].includes(status)) {
+  if (!status || !['open', 'cancelled', 'rejected'].includes(status)) {
     return NextResponse.json(
-      {error: 'status must be open (approve) or cancelled (reject)' },
+      {error: 'status must be open, cancelled or rejected' },
       { status: 400 }
     )
   }
@@ -75,7 +75,10 @@ export async function PATCH(
 
   const { data, error } = await supabaseAdmin
   .from('bounties')
-  .update({ status })
+  .update({ 
+    status,
+    updated_at: new Date().toISOString()
+  })
   .eq('id', id)
   .select()
   .single()

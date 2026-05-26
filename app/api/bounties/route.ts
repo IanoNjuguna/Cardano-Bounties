@@ -50,7 +50,7 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
         deadline,
         project_id,
         created_by: userId,
-        status: 'pending_approval'
+        status: 'pending_escrow'
     })
     .select()
     .single()

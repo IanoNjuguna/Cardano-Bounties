@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { error } from "console";
 
 // POST /api/bounties/[id]/escrow -- save transaction hash after poster locks ADA
 export async function POST(req: NextRequest,
@@ -14,11 +13,11 @@ export async function POST(req: NextRequest,
     }
 
     const body = await req.json()
-    const { transaction_hash, escrow_address } = body
+    const { escrow_tx_hash, escrow_address } = body
 
-    if (!transaction_hash || !escrow_address) {
+    if (!escrow_tx_hash || !escrow_address) {
         return NextResponse.json(
-            { error: 'transaction_hash and escrow_address are required' },
+            { error: 'escrow_hash and escrow_address are required' },
             { status: 400 }
         )
     }
@@ -41,9 +40,9 @@ export async function POST(req: NextRequest,
         )
     }
 
-    if (bounty.status !== 'pending_approval') {
+    if (bounty.status !== 'pending_escrow') {
         return NextResponse.json(
-            { error: 'Bounty is not in pending_approval status' },
+            { error: 'Bounty is not in pending_escrow status' },
             { status: 400 }
         )
     }
@@ -52,9 +51,11 @@ export async function POST(req: NextRequest,
     const { data, error } = await supabaseAdmin
     .from('bounties')
     .update({
-        transaction_hash,
         escrow_address,
-        status: 'awaiting_admin_review'
+        escrow_tx_hash,
+        escrow_submitted_at: new Date().toISOString(),
+        status: 'awaiting_admin_review',
+        updated_at: new Date().toISOString()
     })
     .eq('id', id)
     .select()
