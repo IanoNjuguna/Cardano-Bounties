@@ -1,169 +1,198 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { WalletConnect } from "@/components/wallet/WalletConnect";
+import { useAppWallet } from "@/components/wallet/WalletProvider";
+import { useToast } from "@/components/toast/ToastProvider";
+import { authFetch } from "@/lib/api";
 import styles from "./DashboardPage.module.css";
 
-type Role = "admin" | "contributor" | "poster";
-
-type NavItem = {
-  label: string;
-  href: string;
-  badge?: string;
-};
-
-type Metric = {
-  label: string;
-  value: string;
-  detail: string;
-};
-
-type QueueItem = {
+type Bounty = {
+  id: string;
   title: string;
-  meta: string;
+  description?: string | null;
+  type?: string | null;
+  custom_type?: string | null;
   status: string;
-  value: string;
+  reward_amount?: number | string | null;
+  total_funding_amount?: number | string | null;
+  escrow_address?: string | null;
+  escrow_tx_hash?: string | null;
+  escrow_submitted_at?: string | null;
+  escrow_confirmed_at?: string | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  submissions?: Submission[];
 };
 
-type Activity = {
-  item: string;
-  owner: string;
+type Submission = {
+  id: string;
+  bounty_id?: string | null;
+  contributor_id?: string | null;
+  content?: string | null;
   status: string;
-  updated: string;
+  feedback?: string | null;
+  poster_review_status?: string | null;
+  poster_feedback?: string | null;
+  created_at?: string | null;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+  paid_at?: string | null;
+  transaction_hash?: string | null;
+  bounties?: Bounty | Bounty[] | null;
+  bounty?: Bounty;
 };
 
-const roleLabels: Record<Role, string> = {
-  admin: "Admin",
-  contributor: "Contributor",
-  poster: "Poster",
+type DashboardResponse = {
+  role: "admin" | "poster";
+  metrics: Record<string, number>;
+  queues: {
+    bounty_reviews?: Bounty[];
+    pending_submissions?: Submission[];
+    approved_payouts?: Submission[];
+    refund_candidates?: Bounty[];
+    non_live_bounties?: Bounty[];
+    bounties?: Bounty[];
+    pending_submission_reviews?: Submission[];
+    submissions?: Submission[];
+  };
+  recent_activity?: Bounty[];
+  error?: string;
 };
 
-const dashboardData: Record<
-  Role,
-  {
-    eyebrow: string;
-    title: string;
-    intro: string;
-    nav: NavItem[];
-    metrics: Metric[];
-    queueTitle: string;
-    queue: QueueItem[];
-    activityTitle: string;
-    activity: Activity[];
-  }
-> = {
-  admin: {
-    eyebrow: "Platform operations",
-    title: "Admin command center",
-    intro:
-      "Review bounty health, submission throughput, pending payouts, and project activity from one operational surface.",
-    nav: [
-      { label: "Overview", href: "/dashboard" },
-      { label: "Bounties", href: "/dashboard/bounties", badge: "12" },
-      { label: "Submissions", href: "/dashboard/submissions", badge: "8" },
-      { label: "Projects", href: "/dashboard/projects" },
-      { label: "Payouts", href: "/dashboard/payouts", badge: "3" },
-      { label: "Users", href: "/dashboard/users" },
-      { label: "Settings", href: "/dashboard/settings" },
-    ],
-    metrics: [
-      { label: "Open bounties", value: "24", detail: "+6 this week" },
-      { label: "Pending reviews", value: "18", detail: "7 high priority" },
-      { label: "Queued payouts", value: "9,840 ADA", detail: "3 awaiting tx" },
-      { label: "Active projects", value: "11", detail: "4 posted recently" },
-    ],
-    queueTitle: "Admin review queue",
-    queue: [
-      { title: "Approve wallet SDK bounty", meta: "Lace integration · 2 submissions", status: "Review", value: "1,800 ADA" },
-      { title: "Process approved documentation payout", meta: "Technical docs · Tx required", status: "Payout", value: "650 ADA" },
-      { title: "Moderate security audit brief", meta: "Project owner requested edits", status: "Needs edit", value: "4,000 ADA" },
-    ],
-    activityTitle: "Recent platform activity",
-    activity: [
-      { item: "Plutus V3 starter bounty", owner: "Gimbalabs", status: "Open", updated: "12 min ago" },
-      { item: "DEX landing page review", owner: "TechKR", status: "Approved", updated: "41 min ago" },
-      { item: "Research translation sprint", owner: "Community", status: "Draft", updated: "2 hr ago" },
-      { item: "Wallet UX audit", owner: "Design Guild", status: "Paid", updated: "Yesterday" },
-    ],
-  },
-  contributor: {
-    eyebrow: "Contributor workspace",
-    title: "Track your bounty work",
-    intro:
-      "Find next steps, watch deadlines, monitor submitted work, and keep your contribution history organized.",
-    nav: [
-      { label: "Overview", href: "/dashboard" },
-      { label: "Available bounties", href: "/explore", badge: "24" },
-      { label: "My submissions", href: "/dashboard/submissions", badge: "4" },
-      { label: "Saved bounties", href: "/dashboard/saved" },
-      { label: "Earnings", href: "/dashboard/earnings" },
-      { label: "Profile", href: "/dashboard/profile" },
-    ],
-    metrics: [
-      { label: "Active submissions", value: "4", detail: "2 in review" },
-      { label: "Earned rewards", value: "2,450 ADA", detail: "Last paid May 8" },
-      { label: "Saved bounties", value: "9", detail: "3 closing soon" },
-      { label: "Approval rate", value: "86%", detail: "Past 30 days" },
-    ],
-    queueTitle: "Contributor next steps",
-    queue: [
-      { title: "Finish Plutus starter guide", meta: "Content · Draft saved", status: "Due soon", value: "800 ADA" },
-      { title: "Respond to UI audit feedback", meta: "Design · Reviewer comments", status: "Action needed", value: "1,200 ADA" },
-      { title: "Submit SDK test coverage notes", meta: "Development · Ready to submit", status: "Ready", value: "950 ADA" },
-    ],
-    activityTitle: "Submission history",
-    activity: [
-      { item: "Wallet onboarding copy", owner: "You", status: "Approved", updated: "Today" },
-      { item: "Protocol FAQ rewrite", owner: "You", status: "In review", updated: "Yesterday" },
-      { item: "DRep explainer graphic", owner: "You", status: "Changes requested", updated: "May 9" },
-      { item: "Node setup guide", owner: "You", status: "Paid", updated: "May 4" },
-    ],
-  },
-  poster: {
-    eyebrow: "Project workspace",
-    title: "Manage posted bounties",
-    intro:
-      "Create bounty briefs, review incoming submissions, coordinate feedback, and track reward commitments.",
-    nav: [
-      { label: "Overview", href: "/dashboard" },
-      { label: "My bounties", href: "/dashboard/bounties", badge: "7" },
-      { label: "Create bounty", href: "/dashboard/bounties/new" },
-      { label: "Submissions", href: "/dashboard/submissions", badge: "15" },
-      { label: "Project profile", href: "/dashboard/project" },
-      { label: "Billing", href: "/dashboard/billing" },
-    ],
-    metrics: [
-      { label: "Live bounties", value: "7", detail: "3 featured" },
-      { label: "Incoming submissions", value: "15", detail: "5 unread" },
-      { label: "Committed rewards", value: "12,300 ADA", detail: "Across live work" },
-      { label: "Avg. response time", value: "18h", detail: "This month" },
-    ],
-    queueTitle: "Poster action queue",
-    queue: [
-      { title: "Review security audit submissions", meta: "3 contributors waiting", status: "Review", value: "5,000 ADA" },
-      { title: "Publish design bounty brief", meta: "Draft · Missing acceptance criteria", status: "Draft", value: "1,100 ADA" },
-      { title: "Send feedback on docs submission", meta: "Contributor requested clarification", status: "Feedback", value: "700 ADA" },
-    ],
-    activityTitle: "Bounty performance",
-    activity: [
-      { item: "Smart contract audit", owner: "Your project", status: "15 applicants", updated: "Today" },
-      { item: "Landing page UX review", owner: "Your project", status: "4 submissions", updated: "Yesterday" },
-      { item: "Developer docs rewrite", owner: "Your project", status: "Open", updated: "May 10" },
-      { item: "Community onboarding kit", owner: "Your project", status: "Completed", updated: "May 6" },
-    ],
-  },
-};
+function formatAda(value: number | string | null | undefined) {
+  const amount = Number(value || 0);
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 }).format(amount)} ADA`;
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not recorded";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function normalizeStatus(value: string | null | undefined) {
+  if (!value) return "Pending";
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getSubmissionBounty(submission: Submission) {
+  if (submission.bounty) return submission.bounty;
+  if (Array.isArray(submission.bounties)) return submission.bounties[0];
+  return submission.bounties || null;
+}
+
+function canAdminReviewBounty(bounty: Bounty) {
+  return bounty.status === "awaiting_admin_review";
+}
+
+function getFundingState(bounty: Bounty) {
+  if (bounty.escrow_confirmed_at) return "Escrow confirmed";
+  if (bounty.escrow_tx_hash) return "Escrow submitted";
+  return "Awaiting escrow";
+}
 
 export function DashboardPage() {
-  const [role, setRole] = useState<Role>("admin");
-  const data = dashboardData[role];
+  const { connected, isAuthenticated, role, reauthenticate } = useAppWallet();
+  const toast = useToast();
+  const [data, setData] = useState<DashboardResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [actionId, setActionId] = useState("");
 
-  const completion = useMemo(() => {
-    if (role === "admin") return 72;
-    if (role === "contributor") return 64;
-    return 81;
-  }, [role]);
+  const dashboardRole = role === "admin" ? "admin" : "poster";
+
+  const loadDashboard = useCallback(async () => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await authFetch(`/api/dashboard/${dashboardRole}`, {
+        headers: { Accept: "application/json" },
+      });
+      const payload = (await response.json()) as DashboardResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Unable to load dashboard.");
+      }
+
+      setData(payload);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load dashboard.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [dashboardRole, isAuthenticated]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadDashboard();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadDashboard]);
+
+  async function ensureAuth() {
+    if (!connected) throw new Error("Connect your wallet first.");
+    if (!isAuthenticated) await reauthenticate();
+  }
+
+  async function runAction(id: string, action: () => Promise<Response>, successMessage: string) {
+    setActionId(id);
+    try {
+      await ensureAuth();
+      const response = await action();
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Action failed.");
+      }
+
+      toast.success("Dashboard updated", successMessage);
+      await loadDashboard();
+    } catch (err) {
+      toast.error("Action failed", err instanceof Error ? err.message : "Unable to complete action.");
+    } finally {
+      setActionId("");
+    }
+  }
+
+  const metrics = useMemo(() => {
+    if (!data) return [];
+    if (dashboardRole === "admin") {
+      return [
+        ["Awaiting bounty review", data.metrics.awaiting_bounty_reviews || 0],
+        ["Not live bounties", data.metrics.not_live_bounties || 0],
+        ["Pending submissions", data.metrics.pending_submissions || 0],
+        ["Queued payout value", formatAda(data.metrics.queued_payout_ada || 0)],
+      ];
+    }
+
+    return [
+      ["My bounties", data.metrics.total_bounties || 0],
+      ["Open bounties", data.metrics.open_bounties || 0],
+      ["Submission reviews", data.metrics.pending_submission_reviews || 0],
+      ["Committed rewards", formatAda(data.metrics.committed_ada || 0)],
+    ];
+  }, [dashboardRole, data]);
+
+  const primaryQueueTitle = dashboardRole === "admin" ? "Bounties ready to approve" : "Submissions awaiting poster review";
+  const primaryQueue =
+    dashboardRole === "admin" ? data?.queues.bounty_reviews || [] : data?.queues.pending_submission_reviews || [];
+  const nonLiveBounties = data?.queues.non_live_bounties || [];
 
   return (
     <main className={styles.dashboardShell}>
@@ -173,125 +202,391 @@ export function DashboardPage() {
         </Link>
 
         <div className={styles.roleCard}>
-          <span>{roleLabels[role]}</span>
-          <strong>{data.eyebrow}</strong>
+          <span>{dashboardRole === "admin" ? "Admin" : "Poster"}</span>
+          <strong>{dashboardRole === "admin" ? "Platform operations" : "Project workspace"}</strong>
         </div>
 
         <nav className={styles.sideNav}>
-          {data.nav.map((item) => (
-            <Link href={item.href} key={item.label} className={item.label === "Overview" ? styles.activeNav : ""}>
-              <span>{item.label}</span>
-              {item.badge ? <b>{item.badge}</b> : null}
-            </Link>
-          ))}
+          <Link href="/dashboard" className={styles.activeNav}>Overview</Link>
+          <Link href="/post-bounty">Post bounty</Link>
+          <Link href="/explore">Explore</Link>
         </nav>
 
-        <Link className={styles.backLink} href="/explore">
-          Explore public bounties
-        </Link>
+        <div className={styles.walletSlot}>
+          <WalletConnect />
+        </div>
       </aside>
 
       <section className={styles.dashboardMain}>
         <header className={styles.topbar}>
           <div>
-            <span className="pill">{data.eyebrow}</span>
-            <h1>{data.title}</h1>
-            <p>{data.intro}</p>
-          </div>
-
-          <div className={styles.roleSwitch} aria-label="Preview dashboard role">
-            {(Object.keys(roleLabels) as Role[]).map((item) => (
-              <button
-                className={role === item ? styles.selectedRole : ""}
-                key={item}
-                type="button"
-                onClick={() => setRole(item)}
-              >
-                {roleLabels[item]}
-              </button>
-            ))}
+            <span className="pill">{dashboardRole === "admin" ? "Admin review" : "Poster review"}</span>
+            <h1>{dashboardRole === "admin" ? "Review funded bounties and payouts" : "Manage your bounty pipeline"}</h1>
+            <p>
+              {dashboardRole === "admin"
+                ? "Approve escrow-funded bounties, review submissions, and record payout or refund transactions."
+                : "Track bounties you posted, review contributor submissions, and send recommendations to admin review."}
+            </p>
           </div>
         </header>
 
-        <section className={styles.metricGrid} aria-label={`${roleLabels[role]} dashboard metrics`}>
-          {data.metrics.map((metric) => (
-            <article className={styles.metricCard} key={metric.label}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-              <p>{metric.detail}</p>
-            </article>
-          ))}
-        </section>
-
-        <section className={styles.workspaceGrid}>
-          <div className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <span>Queue</span>
-                <h2>{data.queueTitle}</h2>
-              </div>
-              <button type="button">View all</button>
+        {!connected ? (
+          <section className={styles.panel}>
+            <div className={styles.emptyState}>
+              <h2>Connect wallet to view dashboard</h2>
+              <p>Your wallet role determines whether you see admin queues or poster queues.</p>
+              <WalletConnect />
             </div>
-
-            <div className={styles.queueList}>
-              {data.queue.map((item) => (
-                <article className={styles.queueItem} key={item.title}>
-                  <div>
-                    <h3>{item.title}</h3>
-                    <p>{item.meta}</p>
-                  </div>
-                  <span>{item.status}</span>
-                  <strong>{item.value}</strong>
+          </section>
+        ) : !isAuthenticated ? (
+          <section className={styles.panel}>
+            <div className={styles.emptyState}>
+              <h2>Sign wallet verification</h2>
+              <p>Dashboard actions require an authenticated wallet session.</p>
+              <button type="button" onClick={() => void reauthenticate()}>Sign verification</button>
+            </div>
+          </section>
+        ) : isLoading ? (
+          <section className={styles.panel}>
+            <div className={styles.emptyState}>
+              <h2>Loading dashboard</h2>
+              <p>Fetching live bounty and submission queues.</p>
+            </div>
+          </section>
+        ) : error ? (
+          <section className={styles.panel}>
+            <div className={styles.emptyState}>
+              <h2>Dashboard unavailable</h2>
+              <p>{error}</p>
+              <button type="button" onClick={() => void loadDashboard()}>Retry</button>
+            </div>
+          </section>
+        ) : (
+          <>
+            <section className={styles.metricGrid} aria-label="Dashboard metrics">
+              {metrics.map(([label, value]) => (
+                <article className={styles.metricCard} key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                  <p>Live from Supabase</p>
                 </article>
               ))}
-            </div>
-          </div>
+            </section>
 
-          <aside className={styles.healthPanel}>
-            <span>Operational health</span>
-            <strong>{completion}%</strong>
-            <div className={styles.progressTrack} aria-hidden="true">
-              <i style={{ width: `${completion}%` }} />
-            </div>
-            <p>
-              {role === "admin"
-                ? "Review volume is healthy, with payout operations needing the most attention."
-                : role === "contributor"
-                  ? "Your active work is on track. Prioritize feedback responses before claiming new work."
-                  : "Your bounty pipeline is moving well. Submission review speed is the biggest leverage point."}
-            </p>
-          </aside>
-        </section>
+            <section className={styles.workspaceGrid}>
+              <div className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <span>Queue</span>
+                    <h2>{primaryQueueTitle}</h2>
+                  </div>
+                  <button type="button" onClick={() => void loadDashboard()}>Refresh</button>
+                </div>
 
-        <section className={styles.tablePanel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <span>Activity</span>
-              <h2>{data.activityTitle}</h2>
-            </div>
-            <Link href="/dashboard/activity">Open activity</Link>
-          </div>
-
-          <div className={styles.activityTable} role="table" aria-label={data.activityTitle}>
-            <div className={styles.tableHead} role="row">
-              <span role="columnheader">Item</span>
-              <span role="columnheader">Owner</span>
-              <span role="columnheader">Status</span>
-              <span role="columnheader">Updated</span>
-            </div>
-            {data.activity.map((item) => (
-              <div className={styles.tableRow} role="row" key={`${item.item}-${item.updated}`}>
-                <span role="cell">{item.item}</span>
-                <span role="cell">{item.owner}</span>
-                <span role="cell">
-                  <b>{item.status}</b>
-                </span>
-                <span role="cell">{item.updated}</span>
+                <div className={styles.queueList}>
+                  {primaryQueue.length > 0 ? (
+                    primaryQueue.map((item) =>
+                      dashboardRole === "admin" ? (
+                        <article className={styles.queueItem} key={(item as Bounty).id}>
+                          <div>
+                            <h3>{(item as Bounty).title}</h3>
+                            <p>{normalizeStatus((item as Bounty).status)} - {getFundingState(item as Bounty)}</p>
+                          </div>
+                          <span>{formatAda((item as Bounty).reward_amount)}</span>
+                          <BountyReviewActions bounty={item as Bounty} actionId={actionId} runAction={runAction} />
+                        </article>
+                      ) : (
+                        <article className={styles.queueItem} key={(item as Submission).id}>
+                          <div>
+                            <h3>{getSubmissionBounty(item as Submission)?.title || "Submission"}</h3>
+                            <p>{(item as Submission).content || "No submission notes"}</p>
+                          </div>
+                          <span>{normalizeStatus((item as Submission).poster_review_status)}</span>
+                          <div className={styles.rowActions}>
+                            <button
+                              type="button"
+                              disabled={actionId === `${(item as Submission).id}:recommended_approval`}
+                              onClick={() =>
+                                void runAction(
+                                  `${(item as Submission).id}:recommended_approval`,
+                                  () =>
+                                    authFetch(`/api/submissions/${(item as Submission).id}/poster-review`, {
+                                      method: "PATCH",
+                                      body: JSON.stringify({ status: "recommended_approval" }),
+                                    }),
+                                  "Submission recommended for admin approval.",
+                                )
+                              }
+                            >
+                              Recommend
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actionId === `${(item as Submission).id}:changes_requested`}
+                              onClick={() =>
+                                void runAction(
+                                  `${(item as Submission).id}:changes_requested`,
+                                  () =>
+                                    authFetch(`/api/submissions/${(item as Submission).id}/poster-review`, {
+                                      method: "PATCH",
+                                      body: JSON.stringify({ status: "changes_requested" }),
+                                    }),
+                                  "Submission marked for changes.",
+                                )
+                              }
+                            >
+                              Changes
+                            </button>
+                          </div>
+                        </article>
+                      ),
+                    )
+                  ) : (
+                    <div className={styles.emptyState}>
+                      <h2>No items waiting</h2>
+                      <p>The current review queue is clear.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
-        </section>
+
+              <aside className={styles.healthPanel}>
+                <span>Operational health</span>
+                <strong>{primaryQueue.length === 0 ? "Clear" : primaryQueue.length}</strong>
+                <div className={styles.progressTrack} aria-hidden="true">
+                  <i style={{ width: primaryQueue.length === 0 ? "100%" : "54%" }} />
+                </div>
+                <p>
+                  {dashboardRole === "admin"
+                    ? "Funded bounties should be approved or rejected before they appear publicly."
+                    : "Poster review recommendations help admin process submissions and payouts faster."}
+                </p>
+              </aside>
+            </section>
+
+            {dashboardRole === "admin" ? (
+              <>
+                <section className={styles.tablePanel}>
+                  <div className={styles.panelHeader}>
+                    <div>
+                      <span>Bounties</span>
+                      <h2>All not-live bounties</h2>
+                    </div>
+                  </div>
+                  <AdminBountyTable bounties={nonLiveBounties} actionId={actionId} runAction={runAction} />
+                </section>
+
+                <section className={styles.tablePanel}>
+                  <div className={styles.panelHeader}>
+                    <div>
+                      <span>Submissions</span>
+                      <h2>Pending admin submission review</h2>
+                    </div>
+                  </div>
+                  <SubmissionTable
+                    submissions={data?.queues.pending_submissions || []}
+                    actionId={actionId}
+                    runAction={runAction}
+                  />
+                </section>
+              </>
+            ) : (
+              <section className={styles.tablePanel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <span>Bounties</span>
+                    <h2>My posted bounties</h2>
+                  </div>
+                </div>
+                <BountyTable bounties={data?.queues.bounties || []} />
+              </section>
+            )}
+          </>
+        )}
       </section>
     </main>
+  );
+}
+
+function BountyTable({ bounties }: { bounties: Bounty[] }) {
+  return (
+    <div className={styles.activityTable} role="table" aria-label="Posted bounties">
+      <div className={styles.tableHead} role="row">
+        <span role="columnheader">Bounty</span>
+        <span role="columnheader">Reward</span>
+        <span role="columnheader">Status</span>
+        <span role="columnheader">Updated</span>
+      </div>
+      {bounties.map((bounty) => (
+        <div className={styles.tableRow} role="row" key={bounty.id}>
+          <span role="cell">{bounty.title}</span>
+          <span role="cell">{formatAda(bounty.reward_amount)}</span>
+          <span role="cell"><b>{normalizeStatus(bounty.status)}</b></span>
+          <span role="cell">{formatDate(bounty.created_at)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BountyReviewActions({
+  bounty,
+  actionId,
+  runAction,
+}: {
+  bounty: Bounty;
+  actionId: string;
+  runAction: (id: string, action: () => Promise<Response>, successMessage: string) => Promise<void>;
+}) {
+  const reviewReady = canAdminReviewBounty(bounty);
+
+  return (
+    <div className={styles.rowActions}>
+      <button
+        type="button"
+        disabled={!reviewReady || actionId === `${bounty.id}:open`}
+        title={reviewReady ? "Approve and publish bounty" : "Bounty must have confirmed escrow before approval"}
+        onClick={() =>
+          void runAction(
+            `${bounty.id}:open`,
+            () =>
+              authFetch(`/api/bounties/${bounty.id}`, {
+                method: "PATCH",
+                body: JSON.stringify({ status: "open" }),
+              }),
+            "Bounty approved and opened.",
+          )
+        }
+      >
+        Approve
+      </button>
+      <button
+        type="button"
+        disabled={!reviewReady || actionId === `${bounty.id}:rejected`}
+        title={reviewReady ? "Reject bounty" : "Bounty must be in admin review before rejection"}
+        onClick={() =>
+          void runAction(
+            `${bounty.id}:rejected`,
+            () =>
+              authFetch(`/api/bounties/${bounty.id}`, {
+                method: "PATCH",
+                body: JSON.stringify({ status: "rejected" }),
+              }),
+            "Bounty rejected.",
+          )
+        }
+      >
+        Reject
+      </button>
+    </div>
+  );
+}
+
+function AdminBountyTable({
+  bounties,
+  actionId,
+  runAction,
+}: {
+  bounties: Bounty[];
+  actionId: string;
+  runAction: (id: string, action: () => Promise<Response>, successMessage: string) => Promise<void>;
+}) {
+  if (bounties.length === 0) {
+    return (
+      <div className={styles.emptyState}>
+        <h2>No not-live bounties</h2>
+        <p>Every funded bounty is either public, completed, or already processed.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${styles.activityTable} ${styles.adminBountyTable}`} role="table" aria-label="Not-live bounties">
+      <div className={styles.tableHead} role="row">
+        <span role="columnheader">Bounty</span>
+        <span role="columnheader">Funding</span>
+        <span role="columnheader">Reward</span>
+        <span role="columnheader">Status</span>
+        <span role="columnheader">Action</span>
+      </div>
+      {bounties.map((bounty) => (
+        <div className={styles.tableRow} role="row" key={bounty.id}>
+          <span role="cell">
+            <strong>{bounty.title}</strong>
+            <small>{bounty.escrow_tx_hash ? bounty.escrow_tx_hash : "No escrow transaction recorded"}</small>
+          </span>
+          <span role="cell">{getFundingState(bounty)}</span>
+          <span role="cell">{formatAda(bounty.reward_amount)}</span>
+          <span role="cell"><b>{normalizeStatus(bounty.status)}</b></span>
+          <span role="cell" className={styles.tableActions}>
+            <BountyReviewActions bounty={bounty} actionId={actionId} runAction={runAction} />
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SubmissionTable({
+  submissions,
+  actionId,
+  runAction,
+}: {
+  submissions: Submission[];
+  actionId: string;
+  runAction: (id: string, action: () => Promise<Response>, successMessage: string) => Promise<void>;
+}) {
+  return (
+    <div className={styles.activityTable} role="table" aria-label="Pending submissions">
+      <div className={styles.tableHead} role="row">
+        <span role="columnheader">Submission</span>
+        <span role="columnheader">Poster Rec.</span>
+        <span role="columnheader">Status</span>
+        <span role="columnheader">Action</span>
+      </div>
+      {submissions.map((submission) => (
+        <div className={styles.tableRow} role="row" key={submission.id}>
+          <span role="cell">{getSubmissionBounty(submission)?.title || submission.content || "Submission"}</span>
+          <span role="cell">{normalizeStatus(submission.poster_review_status)}</span>
+          <span role="cell"><b>{normalizeStatus(submission.status)}</b></span>
+          <span role="cell" className={styles.tableActions}>
+            <button
+              type="button"
+              disabled={actionId === `${submission.id}:approve`}
+              onClick={() =>
+                void runAction(
+                  `${submission.id}:approve`,
+                  () =>
+                    authFetch(`/api/submissions/${submission.id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ status: "approved" }),
+                    }),
+                  "Submission approved for payout.",
+                )
+              }
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              disabled={actionId === `${submission.id}:reject`}
+              onClick={() =>
+                void runAction(
+                  `${submission.id}:reject`,
+                  () =>
+                    authFetch(`/api/submissions/${submission.id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ status: "rejected" }),
+                    }),
+                  "Submission rejected.",
+                )
+              }
+            >
+              Reject
+            </button>
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }

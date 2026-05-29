@@ -1,5 +1,3 @@
-import { adaToLovelace } from "@/lib/cardano/amounts";
-
 const BLOCKFROST_PREPROD_BASE_URL = "https://cardano-preprod.blockfrost.io/api/v0";
 
 type BlockfrostAmount = {
@@ -51,6 +49,14 @@ async function blockfrostGet<T>(path: string): Promise<{ ok: true; data: T } | {
   });
 
   if (!response.ok) {
+    if (response.status === 404) {
+      return {
+        ok: false,
+        error: "Transaction is not indexed by Blockfrost yet. Wait a few seconds and retry escrow recording.",
+        status: 425,
+      };
+    }
+
     return {
       ok: false,
       error: `Blockfrost request failed with status ${response.status}`,

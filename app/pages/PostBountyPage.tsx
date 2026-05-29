@@ -28,18 +28,19 @@ type CreatedBounty = {
   id?: string;
   title?: string;
   error?: string;
+  retryable?: boolean;
 };
 
 const bountyTypes = [
-  "Development",
-  "Design",
-  "Content",
-  "Hackathon",
-  "Documentation",
-  "Research",
-  "Community",
-  "Security",
-  "Other",
+  { value: "development", label: "Development" },
+  { value: "design", label: "Design" },
+  { value: "content", label: "Content" },
+  { value: "hackathon", label: "Hackathon" },
+  { value: "documentation", label: "Documentation" },
+  { value: "research", label: "Research" },
+  { value: "community", label: "Community" },
+  { value: "security", label: "Security" },
+  { value: "other", label: "Other" },
 ];
 
 const ESCROW_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_ADDRESS;
@@ -56,7 +57,7 @@ const adaFormatter = new Intl.NumberFormat("en-US", {
 
 const initialForm: BountyForm = {
   title: "",
-  type: "Development",
+  type: "development",
   customType: "",
   reward_amount: "",
   deadline: "",
@@ -65,7 +66,7 @@ const initialForm: BountyForm = {
 };
 
 function getBountyType(form: BountyForm) {
-  return form.type === "Other" ? form.customType.trim() : form.type;
+  return form.type === "other" ? form.customType.trim() : form.type;
 }
 
 function getTodayDateValue() {
@@ -114,6 +115,60 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function recordEscrowWithRetry({
+  bountyId,
+  txHash,
+  escrowAddress,
+  onRetry,
+}: {
+  bountyId: string;
+  txHash: string;
+  escrowAddress: string;
+  onRetry: (attempt: number) => void;
+}) {
+  const maxAttempts = 10;
+  const retryDelayMs = 6000;
+  let lastError = "";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const escrowResponse = await authFetch(`/api/bounties/${bountyId}/escrow`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        escrow_tx_hash: txHash,
+        escrow_address: escrowAddress,
+      }),
+    });
+
+    const escrowData = (await escrowResponse.json()) as CreatedBounty;
+
+    if (escrowResponse.ok) return escrowData;
+
+    lastError =
+      escrowData.error ||
+      `Escrow transaction submitted, but the app could not save the transaction hash: ${txHash}`;
+
+    if (!escrowData.retryable && escrowResponse.status !== 425) {
+      throw new Error(lastError);
+    }
+
+    if (attempt < maxAttempts) {
+      onRetry(attempt);
+      await wait(retryDelayMs);
+    }
+  }
+
+  throw new Error(`${lastError} Transaction hash: ${txHash}`);
+}
+
 function validateForm(form: BountyForm) {
   const errors: FieldErrors = {};
   const reward = Number(form.reward_amount);
@@ -132,8 +187,8 @@ function validateForm(form: BountyForm) {
   }
 
   if (!bountyType) {
-    errors.type = form.type === "Other" ? "Describe the bounty type you need." : "Choose a bounty type.";
-  } else if (form.type === "Other" && bountyType.length < MIN_CUSTOM_TYPE_LENGTH) {
+    errors.type = form.type === "other" ? "Describe the bounty type you need." : "Choose a bounty type.";
+  } else if (form.type === "other" && bountyType.length < MIN_CUSTOM_TYPE_LENGTH) {
     errors.type = `Use at least ${MIN_CUSTOM_TYPE_LENGTH} characters for the custom type.`;
   } else if (bountyType.length > MAX_CUSTOM_TYPE_LENGTH) {
     errors.type = `Keep the bounty type under ${MAX_CUSTOM_TYPE_LENGTH} characters.`;
@@ -239,7 +294,8 @@ export function PostBountyPage() {
       const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
-        type: bountyType,
+        type: form.type,
+        custom_type: form.type === "other" ? bountyType : null,
         reward_amount: amountBreakdown.contributorReward,
         platform_fee_amount: amountBreakdown.platformFee,
         total_funding_amount: amountBreakdown.totalFunding,
@@ -278,26 +334,15 @@ export function PostBountyPage() {
       });
       escrowTxSubmitted = true;
 
-      setSubmitStep("Recording escrow transaction...");
-      const escrowResponse = await authFetch(`/api/bounties/${data.id}/escrow`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
+      setSubmitStep("Confirming escrow transaction...");
+      await recordEscrowWithRetry({
+        bountyId: data.id,
+        txHash,
+        escrowAddress: ESCROW_ADDRESS,
+        onRetry: (attempt) => {
+          setSubmitStep(`Waiting for Blockfrost indexing... retry ${attempt}/9`);
         },
-        body: JSON.stringify({
-          escrow_tx_hash: txHash,
-          escrow_address: ESCROW_ADDRESS,
-        }),
       });
-
-      const escrowData = (await escrowResponse.json()) as CreatedBounty;
-
-      if (!escrowResponse.ok) {
-        throw new Error(
-          escrowData.error ||
-            `Escrow transaction submitted, but the app could not save the transaction hash: ${txHash}`,
-        );
-      }
 
       setCreatedTitle(data.title || payload.title);
       setForm(initialForm);
@@ -428,18 +473,18 @@ export function PostBountyPage() {
                   value={form.type}
                   onChange={(event) => {
                     updateField("type", event.target.value);
-                    if (event.target.value !== "Other") updateField("customType", "");
+                  if (event.target.value !== "other") updateField("customType", "");
                   }}
                   aria-invalid={Boolean(errors.type)}
                   aria-describedby={errors.type ? "type-error" : undefined}
                 >
                   {bountyTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
+                    <option key={type.value} value={type.value}>
+                      {type.label}
                     </option>
                   ))}
                 </select>
-                {errors.type && form.type !== "Other" ? <span id="type-error">{errors.type}</span> : null}
+                {errors.type && form.type !== "other" ? <span id="type-error">{errors.type}</span> : null}
               </div>
 
               <div className={styles.fieldGroup}>
@@ -466,7 +511,7 @@ export function PostBountyPage() {
               </div>
             </div>
 
-            {form.type === "Other" ? (
+            {form.type === "other" ? (
               <div className={`${styles.fieldGroup} ${styles.customTypeField}`}>
                 <label htmlFor="custom-type">Describe bounty type</label>
                 <input

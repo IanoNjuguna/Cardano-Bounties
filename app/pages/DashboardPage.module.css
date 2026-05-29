@@ -111,6 +111,12 @@
   font-weight: 650;
 }
 
+.walletSlot {
+  margin-top: auto;
+  display: grid;
+  gap: 10px;
+}
+
 .dashboardMain {
   min-width: 0;
   padding: 32px;
@@ -236,7 +242,10 @@
 }
 
 .panelHeader button,
-.panelHeader a {
+.panelHeader a,
+.emptyState button,
+.rowActions button,
+.tableActions button {
   min-height: 34px;
   display: inline-flex;
   align-items: center;
@@ -249,6 +258,48 @@
   font-size: 12px;
   font-weight: 650;
   cursor: pointer;
+}
+
+.rowActions,
+.tableActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.rowActions button:first-child,
+.tableActions button:first-child {
+  border-color: rgba(1, 81, 194, 0.24);
+  background: var(--blue);
+  color: #fff;
+}
+
+.rowActions button:disabled,
+.tableActions button:disabled,
+.emptyState button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.emptyState {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 18px;
+}
+
+.emptyState h2 {
+  color: #111318;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.emptyState p {
+  max-width: 560px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .queueList {
@@ -371,6 +422,18 @@
   font-weight: 650;
 }
 
+.tableRow small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tableRow b {
   display: inline-flex;
   border-radius: 999px;
@@ -378,6 +441,16 @@
   color: #475569;
   padding: 5px 9px;
   font-size: 11px;
+}
+
+.adminBountyTable .tableHead,
+.adminBountyTable .tableRow {
+  grid-template-columns:
+    minmax(240px, 1.5fr)
+    minmax(130px, 0.8fr)
+    minmax(110px, 0.7fr)
+    minmax(120px, 0.7fr)
+    minmax(160px, 0.9fr);
 }
 
 @media (max-width: 1100px) {

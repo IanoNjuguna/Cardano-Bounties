@@ -69,8 +69,23 @@ export async function POST(
   });
 
   if (!verification.ok) {
+    if (verification.status === 425) {
+      await supabaseAdmin
+        .from("bounties")
+        .update({
+          escrow_tx_hash,
+          escrow_address,
+          escrow_submitted_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+    }
+
     return NextResponse.json(
-      { error: verification.error },
+      {
+        error: verification.error,
+        retryable: verification.status === 425,
+        escrow_tx_hash,
+      },
       { status: verification.status || 400 },
     );
   }

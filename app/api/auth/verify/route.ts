@@ -50,7 +50,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   //   Issue a JWT valid for 7 days
   const token = jwt.sign(
-    { userId: user.id, address, role: user.role },
+    { userId: user.id, address, role: user.role || "user" },
     JWT_SECRET,
     { expiresIn: "7d" },
   );

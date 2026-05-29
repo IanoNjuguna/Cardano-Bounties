@@ -16,6 +16,19 @@ export const SUBMISSION_STATUS = {
   Paid: "paid",
 } as const;
 
+export const BOUNTY_TYPES = [
+  "development",
+  "design",
+  "content",
+  "hackathon",
+  "documentation",
+  "research",
+  "community",
+  "security",
+  "other",
+  "micro-task",
+] as const;
+
 export const PLATFORM_FEE_RATE = 0.1;
 export const MAX_REWARD_ADA = 1_000_000;
 export const MIN_TITLE_LENGTH = 8;
@@ -28,6 +41,7 @@ export const MAX_DESCRIPTION_LENGTH = 2000;
 const TX_HASH_PATTERN = /^[0-9a-f]{64}$/i;
 
 export type BountyStatus = (typeof BOUNTY_STATUS)[keyof typeof BOUNTY_STATUS];
+export type BountyType = (typeof BOUNTY_TYPES)[number];
 
 export type ValidationResult<T> =
   | { ok: true; value: T }
@@ -37,6 +51,7 @@ export type CreateBountyInput = {
   title: string;
   description: string;
   type: string;
+  custom_type: string | null;
   reward_amount: number;
   platform_fee_amount: number;
   total_funding_amount: number;
@@ -94,6 +109,7 @@ export function validateCreateBountyPayload(body: unknown): ValidationResult<Cre
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const description = typeof body.description === "string" ? body.description.trim() : "";
   const type = typeof body.type === "string" ? body.type.trim() : "";
+  const customType = typeof body.custom_type === "string" && body.custom_type.trim() ? body.custom_type.trim() : null;
   const rewardAmount = Number(body.reward_amount);
   const requestedPlatformFee =
     body.platform_fee_amount === undefined ? null : Number(body.platform_fee_amount);
@@ -111,11 +127,20 @@ export function validateCreateBountyPayload(body: unknown): ValidationResult<Cre
   }
 
   if (!type) return { ok: false, field: "type", error: "type is required" };
+  if (!BOUNTY_TYPES.includes(type as BountyType)) {
+    return { ok: false, field: "type", error: "type is not supported" };
+  }
   if (type.length < MIN_TYPE_LENGTH) {
     return { ok: false, field: "type", error: `type must be at least ${MIN_TYPE_LENGTH} characters` };
   }
   if (type.length > MAX_TYPE_LENGTH) {
     return { ok: false, field: "type", error: `type must be at most ${MAX_TYPE_LENGTH} characters` };
+  }
+  if (type === "other" && !customType) {
+    return { ok: false, field: "custom_type", error: "custom_type is required when type is other" };
+  }
+  if (customType && customType.length > MAX_TYPE_LENGTH) {
+    return { ok: false, field: "custom_type", error: `custom_type must be at most ${MAX_TYPE_LENGTH} characters` };
   }
 
   if (!description) return { ok: false, field: "description", error: "description is required" };
@@ -164,6 +189,7 @@ export function validateCreateBountyPayload(body: unknown): ValidationResult<Cre
       title,
       description,
       type,
+      custom_type: customType,
       reward_amount: reward,
       platform_fee_amount: platformFee,
       total_funding_amount: totalFunding,

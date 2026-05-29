@@ -7,12 +7,14 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 const ProtectedRoutes = [
     '/api/submissions',
     '/api/admin',
-    '/api/users'
+    '/api/users',
+    '/api/dashboard'
 ]
 
 // Routes that require admin role
 const adminRoutes = [
-    '/api/admin'
+    '/api/admin',
+    '/api/dashboard/admin'
 ]
 
 export function proxy(req: NextRequest) {

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import { BOUNTY_STATUS } from "@/lib/bountyContract";
 // GET /api/admin/bounties -- fetch all bounties
 
 export async function GET(req: NextRequest) {
@@ -14,13 +15,21 @@ export async function GET(req: NextRequest) {
     .select(
       `
         *,
-    .submissions (
-        id,
-        status,
-        constributor_id,
-        submitted_at
-    )
-    `,
+        submissions (
+          id,
+          status,
+          contributor_id,
+          content,
+          feedback,
+          poster_review_status,
+          poster_feedback,
+          created_at:submitted_at,
+          submitted_at,
+          reviewed_at,
+          paid_at,
+          transaction_hash
+        )
+      `,
     )
     .order("created_at", { ascending: false });
 
@@ -47,7 +56,7 @@ export async function DELETE(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("bounties")
-    .update({ status: "cancelled" })
+    .update({ status: BOUNTY_STATUS.Cancelled, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select()
     .single();
