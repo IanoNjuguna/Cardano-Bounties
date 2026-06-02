@@ -25,6 +25,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         .update({ nonce, nonce_expires_at })
         .eq('stake_address', address)
 
+        console.log('Update error:', error)
+
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 })
         }

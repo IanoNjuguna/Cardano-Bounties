@@ -6,7 +6,14 @@ import { supabaseAdmin } from "@/lib/supabase";
 export async function GET(): Promise<NextResponse> {
     const { data, error } = await supabaseAdmin
     .from('bounties')
-    .select('*')
+    .select(`
+        *,
+        projects (
+        id,
+        name,
+        logo_url
+        )
+        `)
     .eq('status', 'open')
     .order('created_at', {ascending: false})
 
@@ -44,6 +51,8 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
         total_funding_amount,
         deadline,
         project_id,
+        project_name,
+        project_logo_url
     } = validated.value
 
     const {data, error} = await supabaseAdmin
@@ -57,6 +66,8 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
         total_funding_amount,
         deadline,
         project_id,
+        project_name,
+        project_logo_url,
         created_by: userId,
 
         status: BOUNTY_STATUS.PendingEscrow
