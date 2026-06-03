@@ -57,6 +57,8 @@ export type CreateBountyInput = {
   total_funding_amount: number;
   deadline: string | null;
   project_id: string | null;
+  project_name?: string;
+  project_logo_url?: string
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -183,6 +185,9 @@ export function validateCreateBountyPayload(body: unknown): ValidationResult<Cre
     return { ok: false, field: "total_funding_amount", error: "total_funding_amount does not match reward_amount" };
   }
 
+  const projectName = typeof body.project_name === 'string' && body.project_name.trim() ? body.project_name.trim() : undefined;
+  const projectLogoUrl = typeof body.project_logo_url === 'string' && body.project_logo_url.trim() ? body.project_logo_url.trim() : undefined;
+
   return {
     ok: true,
     value: {
@@ -195,6 +200,8 @@ export function validateCreateBountyPayload(body: unknown): ValidationResult<Cre
       total_funding_amount: totalFunding,
       deadline,
       project_id: projectId,
+      project_name: projectName,
+      project_logo_url: projectLogoUrl
     },
   };
 }

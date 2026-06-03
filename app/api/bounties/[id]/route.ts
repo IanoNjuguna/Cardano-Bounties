@@ -19,6 +19,11 @@ export async function GET(
           status,
           submitted_at,
           reviewed_at
+        ),
+        projects (
+        id,
+        name,
+        logo_url
         )
       `,
     )

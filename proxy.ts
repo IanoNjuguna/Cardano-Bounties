@@ -8,7 +8,8 @@ const ProtectedRoutes = [
     '/api/submissions',
     '/api/admin',
     '/api/users',
-    '/api/dashboard'
+    '/api/dashboard',
+    '/api/upload'
 ]
 
 // Routes that require admin role
