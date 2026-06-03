@@ -37,6 +37,9 @@ export const MIN_TYPE_LENGTH = 3;
 export const MAX_TYPE_LENGTH = 80;
 export const MIN_DESCRIPTION_LENGTH = 40;
 export const MAX_DESCRIPTION_LENGTH = 2000;
+export const MIN_INSTRUCTIONS_LENGTH = 20;
+export const MAX_INSTRUCTIONS_LENGTH = 2000;
+export const MAX_PROJECT_NAME_LENGTH = 120;
 
 const TX_HASH_PATTERN = /^[0-9a-f]{64}$/i;
 
@@ -57,8 +60,9 @@ export type CreateBountyInput = {
   total_funding_amount: number;
   deadline: string | null;
   project_id: string | null;
-  project_name?: string;
-  project_logo_url?: string
+  project_name: string | null;
+  project_logo_url: string | null;
+  bounty_instructions: string;
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -119,6 +123,11 @@ export function validateCreateBountyPayload(body: unknown): ValidationResult<Cre
     body.total_funding_amount === undefined ? null : Number(body.total_funding_amount);
   const deadline = typeof body.deadline === "string" && body.deadline.trim() ? body.deadline.trim() : null;
   const projectId = typeof body.project_id === "string" && body.project_id.trim() ? body.project_id.trim() : null;
+  const projectName = typeof body.project_name === "string" && body.project_name.trim() ? body.project_name.trim() : null;
+  const projectLogoUrl =
+    typeof body.project_logo_url === "string" && body.project_logo_url.trim() ? body.project_logo_url.trim() : null;
+  const bountyInstructions =
+    typeof body.bounty_instructions === "string" ? body.bounty_instructions.trim() : "";
 
   if (!title) return { ok: false, field: "title", error: "title is required" };
   if (title.length < MIN_TITLE_LENGTH) {
@@ -161,6 +170,41 @@ export function validateCreateBountyPayload(body: unknown): ValidationResult<Cre
     };
   }
 
+  if (!bountyInstructions) return { ok: false, field: "bounty_instructions", error: "bounty_instructions is required" };
+  if (bountyInstructions.length < MIN_INSTRUCTIONS_LENGTH) {
+    return {
+      ok: false,
+      field: "bounty_instructions",
+      error: `bounty_instructions must be at least ${MIN_INSTRUCTIONS_LENGTH} characters`,
+    };
+  }
+  if (bountyInstructions.length > MAX_INSTRUCTIONS_LENGTH) {
+    return {
+      ok: false,
+      field: "bounty_instructions",
+      error: `bounty_instructions must be at most ${MAX_INSTRUCTIONS_LENGTH} characters`,
+    };
+  }
+
+  if (projectName && projectName.length > MAX_PROJECT_NAME_LENGTH) {
+    return {
+      ok: false,
+      field: "project_name",
+      error: `project_name must be at most ${MAX_PROJECT_NAME_LENGTH} characters`,
+    };
+  }
+
+  if (projectLogoUrl) {
+    try {
+      const parsedUrl = new URL(projectLogoUrl);
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        return { ok: false, field: "project_logo_url", error: "project_logo_url must be an HTTP URL" };
+      }
+    } catch {
+      return { ok: false, field: "project_logo_url", error: "project_logo_url must be a valid URL" };
+    }
+  }
+
   if (!Number.isFinite(rewardAmount) || rewardAmount <= 0) {
     return { ok: false, field: "reward_amount", error: "reward_amount must be greater than 0" };
   }
@@ -185,9 +229,6 @@ export function validateCreateBountyPayload(body: unknown): ValidationResult<Cre
     return { ok: false, field: "total_funding_amount", error: "total_funding_amount does not match reward_amount" };
   }
 
-  const projectName = typeof body.project_name === 'string' && body.project_name.trim() ? body.project_name.trim() : undefined;
-  const projectLogoUrl = typeof body.project_logo_url === 'string' && body.project_logo_url.trim() ? body.project_logo_url.trim() : undefined;
-
   return {
     ok: true,
     value: {
@@ -201,7 +242,8 @@ export function validateCreateBountyPayload(body: unknown): ValidationResult<Cre
       deadline,
       project_id: projectId,
       project_name: projectName,
-      project_logo_url: projectLogoUrl
+      project_logo_url: projectLogoUrl,
+      bounty_instructions: bountyInstructions,
     },
   };
 }

@@ -93,7 +93,8 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
         deadline,
         project_id,
         project_name,
-        project_logo_url
+        project_logo_url,
+        bounty_instructions,
     } = validated.value
 
     const {data, error} = await supabaseAdmin
@@ -109,6 +110,7 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
         project_id,
         project_name,
         project_logo_url,
+        bounty_instructions,
         created_by: userId,
 
         status: BOUNTY_STATUS.PendingEscrow

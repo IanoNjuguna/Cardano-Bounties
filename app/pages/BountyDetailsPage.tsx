@@ -2,6 +2,7 @@
 
 import type { FormEvent, KeyboardEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
@@ -19,6 +20,13 @@ type Bounty = {
   created_at: string | null;
   created_by?: string | null;
   status?: string | null;
+  project_name?: string | null;
+  project_logo_url?: string | null;
+  bounty_instructions?: string | null;
+  projects?: {
+    name?: string | null;
+    logo_url?: string | null;
+  } | null;
   submissions?: BountySubmission[] | null;
 };
 
@@ -30,7 +38,7 @@ type BountySubmission = {
   reviewed_at: string | null;
 };
 
-type DetailTab = "brief" | "contributions" | "submit" | "details";
+type DetailTab = "brief" | "instructions" | "contributions" | "submit" | "details";
 
 function formatAda(value: Bounty["reward_amount"]) {
   if (value === null || value === undefined || value === "") return "Reward TBD";
@@ -83,6 +91,14 @@ function normalizeStatus(status: string | null) {
     .join(" ");
 }
 
+function getProjectName(bounty: Bounty) {
+  return bounty.project_name || bounty.projects?.name || "Independent bounty";
+}
+
+function getProjectLogoUrl(bounty: Bounty) {
+  return bounty.project_logo_url || bounty.projects?.logo_url || "";
+}
+
 export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
   const { address, connected, isAuthenticated } = useAppWallet();
   const [bounty, setBounty] = useState<Bounty | null>(null);
@@ -130,11 +146,16 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
   }, [bountyId]);
 
   const briefSections = useMemo(() => splitBrief(bounty?.description || ""), [bounty?.description]);
+  const instructionSections = useMemo(
+    () => splitBrief(bounty?.bounty_instructions || ""),
+    [bounty?.bounty_instructions],
+  );
   const submissions = bounty?.submissions || [];
   const detailTabs = useMemo(
     () =>
       [
         { id: "brief", label: "Brief" },
+        { id: "instructions", label: "Instructions" },
         { id: "contributions", label: `Contributions (${submissions.length})` },
         { id: "submit", label: "Submit work" },
         { id: "details", label: "Details" },
@@ -247,6 +268,21 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
                 <span className="eyebrow">
                   <i /> {bounty.type || "Bounty"}
                 </span>
+                <div className={styles.projectIdentity}>
+                  <span aria-hidden="true" className={styles.projectLogo}>
+                    {getProjectLogoUrl(bounty) && (
+                      <Image
+                        src={getProjectLogoUrl(bounty)}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className={styles.projectLogoImg}
+                        unoptimized
+                      />
+                    )}
+                  </span>
+                  <strong>{getProjectName(bounty)}</strong>
+                </div>
                 <h1>{bounty.title}</h1>
                 <p>{briefSections[0] || bounty.description}</p>
                 <div className={styles.heroActions}>
@@ -311,6 +347,23 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
 
                     <div className={styles.briefContent}>
                       {(briefSections.length > 0 ? briefSections : [bounty.description]).map((section, index) => (
+                        <p key={`${section}-${index}`}>{section}</p>
+                      ))}
+                    </div>
+                  </article>
+                ) : null}
+
+                {activeTab === "instructions" ? (
+                  <article className={styles.briefCard}>
+                    <div className={styles.sectionHeader}>
+                      <span>Bounty instructions</span>
+                      <h2>Reward and review rules</h2>
+                    </div>
+
+                    <div className={styles.briefContent}>
+                      {(instructionSections.length > 0
+                        ? instructionSections
+                        : ["No dedicated instructions were added for this bounty."]).map((section, index) => (
                         <p key={`${section}-${index}`}>{section}</p>
                       ))}
                     </div>
@@ -468,6 +521,10 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
                       <div>
                         <span>Type</span>
                         <strong>{bounty.type || "General"}</strong>
+                      </div>
+                      <div>
+                        <span>Project</span>
+                        <strong>{getProjectName(bounty)}</strong>
                       </div>
                       <div>
                         <span>Poster</span>

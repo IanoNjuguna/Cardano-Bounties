@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
@@ -16,6 +17,12 @@ type Bounty = {
   deadline: string | null;
   created_at: string | null;
   status?: string | null;
+  project_name?: string | null;
+  project_logo_url?: string | null;
+  projects?: {
+    name?: string | null;
+    logo_url?: string | null;
+  } | null;
 };
 
 type BountyPagination = {
@@ -102,6 +109,14 @@ function getDeadlineState(value: string | null) {
   if (days === 0) return "Due today";
   if (days <= 7) return `${days}d left`;
   return "Open";
+}
+
+function getProjectName(bounty: Bounty) {
+  return bounty.project_name || bounty.projects?.name || "Independent bounty";
+}
+
+function getProjectLogoUrl(bounty: Bounty) {
+  return bounty.project_logo_url || bounty.projects?.logo_url || "";
 }
 
 export function ExploreBountiesPage() {
@@ -238,7 +253,7 @@ export function ExploreBountiesPage() {
 
             <div className={styles.filterControls}>
               <label className={styles.selectField}>
-                <span>Category</span>
+                <span>Filter by category</span>
                 <select value={activeType} onChange={(event) => updateType(event.target.value)}>
                   {categoryOptions.map((category) => (
                     <option key={category.value} value={category.value}>
@@ -274,19 +289,6 @@ export function ExploreBountiesPage() {
               </span>
               <span>Page {pagination.page} of {pagination.totalPages}</span>
             </div>
-
-            <div className={styles.typeFilters} aria-label="Quick category filters">
-              {categoryOptions.slice(0, 5).map((category) => (
-                <button
-                  key={category.value}
-                  className={activeType === category.value ? styles.isActive : ""}
-                  type="button"
-                  onClick={() => updateType(category.value)}
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           {isLoading ? (
@@ -321,6 +323,21 @@ export function ExploreBountiesPage() {
                     <div className={styles.bountyCardTop}>
                       <span>{normalizeType(bounty.type)}</span>
                       <b>{getDeadlineState(bounty.deadline)}</b>
+                    </div>
+                    <div className={styles.projectIdentity}>
+                      <span aria-hidden="true" className={styles.projectLogo}>
+                        {getProjectLogoUrl(bounty) && (
+                          <Image
+                            src={getProjectLogoUrl(bounty)}
+                            alt=""
+                            width={36}
+                            height={36}
+                            className={styles.projectLogoImg}
+                            unoptimized
+                          />
+                        )}
+                      </span>
+                      <strong>{getProjectName(bounty)}</strong>
                     </div>
                     <h2>{bounty.title}</h2>
                     <p>{bounty.description}</p>

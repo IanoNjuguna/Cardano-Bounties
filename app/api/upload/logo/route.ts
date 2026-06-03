@@ -16,7 +16,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/webp', 'image/svg+xml']
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
     if (!allowedTypes.includes(file.type)) {
         return NextResponse.json(
             { error: 'Only JPEG, PNG, WebP and SVG are allowed' },
