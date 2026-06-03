@@ -6,6 +6,24 @@ function sumAda(items: Array<{ reward_amount?: number | string | null }>) {
   return items.reduce((sum, item) => sum + Number(item.reward_amount || 0), 0);
 }
 
+async function attachPosterProfiles<T extends { created_by?: string | null }>(bounties: T[]) {
+  const posterIds = [...new Set(bounties.map((bounty) => bounty.created_by).filter(Boolean))] as string[];
+
+  if (posterIds.length === 0) return bounties;
+
+  const { data: users } = await supabaseAdmin
+    .from("users")
+    .select("id, stake_address, display_name, role, created_at")
+    .in("id", posterIds);
+
+  const usersById = new Map((users || []).map((user) => [user.id, user]));
+
+  return bounties.map((bounty) => ({
+    ...bounty,
+    poster: bounty.created_by ? usersById.get(bounty.created_by) || null : null,
+  }));
+}
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const role = req.headers.get("x-user-role");
 
@@ -79,7 +97,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: submissionsResult.error.message }, { status: 500 });
   }
 
-  const bounties = bountiesResult.data || [];
+  const bounties = await attachPosterProfiles(bountiesResult.data || []);
   const submissions = submissionsResult.data || [];
   const awaitingBounties = bounties.filter((bounty) => bounty.status === BOUNTY_STATUS.AwaitingAdminReview);
   const pendingEscrowBounties = bounties.filter((bounty) => bounty.status === BOUNTY_STATUS.PendingEscrow);
@@ -89,6 +107,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const openBounties = bounties.filter((bounty) => bounty.status === BOUNTY_STATUS.Open);
   const approvedSubmissions = submissions.filter((submission) => submission.status === SUBMISSION_STATUS.Approved);
   const pendingSubmissions = submissions.filter((submission) => submission.status === SUBMISSION_STATUS.Pending);
+  const refundCandidates = bounties.filter((bounty) =>
+    [BOUNTY_STATUS.Rejected, BOUNTY_STATUS.Cancelled, BOUNTY_STATUS.Expired].includes(bounty.status),
+  );
 
   return NextResponse.json({
     role: "admin",
@@ -97,6 +118,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       not_live_bounties: nonLiveBounties.length,
       awaiting_bounty_reviews: awaitingBounties.length,
       pending_escrow_bounties: pendingEscrowBounties.length,
+      refund_candidates: refundCandidates.length,
       pending_submissions: pendingSubmissions.length,
       approved_payouts: approvedSubmissions.length,
       queued_payout_ada: sumAda(
@@ -111,9 +133,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       non_live_bounties: nonLiveBounties,
       pending_submissions: pendingSubmissions,
       approved_payouts: approvedSubmissions,
-      refund_candidates: bounties.filter((bounty) =>
-        [BOUNTY_STATUS.Rejected, BOUNTY_STATUS.Cancelled, BOUNTY_STATUS.Expired].includes(bounty.status),
-      ),
+      refund_candidates: refundCandidates,
     },
     recent_activity: [...bounties].slice(0, 8),
   });

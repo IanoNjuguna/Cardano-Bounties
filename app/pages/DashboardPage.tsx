@@ -22,9 +22,19 @@ type Bounty = {
   escrow_tx_hash?: string | null;
   escrow_submitted_at?: string | null;
   escrow_confirmed_at?: string | null;
+  refund_tx_hash?: string | null;
+  refunded_at?: string | null;
   created_by?: string | null;
   created_at?: string | null;
+  poster?: UserProfile | null;
   submissions?: Submission[];
+};
+
+type UserProfile = {
+  id: string;
+  stake_address?: string | null;
+  display_name?: string | null;
+  role?: string | null;
 };
 
 type Submission = {
@@ -90,6 +100,24 @@ function getSubmissionBounty(submission: Submission) {
   return submission.bounties || null;
 }
 
+function groupSubmissionsByBounty(submissions: Submission[]) {
+  const groups = new Map<string, { bounty: Bounty | null; submissions: Submission[] }>();
+
+  submissions.forEach((submission) => {
+    const bounty = getSubmissionBounty(submission);
+    const key = bounty?.id || submission.bounty_id || "unknown";
+    const existing = groups.get(key);
+
+    if (existing) {
+      existing.submissions.push(submission);
+    } else {
+      groups.set(key, { bounty, submissions: [submission] });
+    }
+  });
+
+  return [...groups.values()];
+}
+
 function canAdminReviewBounty(bounty: Bounty) {
   return bounty.status === "awaiting_admin_review";
 }
@@ -98,6 +126,42 @@ function getFundingState(bounty: Bounty) {
   if (bounty.escrow_confirmed_at) return "Escrow confirmed";
   if (bounty.escrow_tx_hash) return "Escrow submitted";
   return "Awaiting escrow";
+}
+
+function shortId(value: string | null | undefined) {
+  if (!value) return "Unknown";
+  if (value.length <= 16) return value;
+  return `${value.slice(0, 10)}...${value.slice(-6)}`;
+}
+
+function getPosterLabel(bounty: Bounty) {
+  return bounty.poster?.display_name || shortId(bounty.poster?.stake_address || bounty.created_by);
+}
+
+function getBountyLifecycleNote(bounty: Bounty) {
+  if (bounty.status === "rejected") {
+    return bounty.refund_tx_hash
+      ? `Rejected: refund recorded ${shortId(bounty.refund_tx_hash)}`
+      : "Rejected: hidden from public board; refund transaction is required.";
+  }
+
+  if (bounty.status === "cancelled" || bounty.status === "expired") {
+    return bounty.refund_tx_hash
+      ? `Refund recorded ${shortId(bounty.refund_tx_hash)}`
+      : `${normalizeStatus(bounty.status)}: refund transaction is required if escrow was funded.`;
+  }
+
+  if (bounty.status === "awaiting_admin_review") {
+    return "Escrow verified; admin must approve to publish or reject for refund.";
+  }
+
+  if (bounty.status === "pending_escrow") {
+    return "Waiting for escrow transaction verification before admin review.";
+  }
+
+  if (bounty.status === "open") return "Public bounty accepting submissions.";
+  if (bounty.status === "completed") return "Completed bounty; payout has been recorded.";
+  return normalizeStatus(bounty.status);
 }
 
 export function DashboardPage() {
@@ -176,7 +240,7 @@ export function DashboardPage() {
       return [
         ["Awaiting bounty review", data.metrics.awaiting_bounty_reviews || 0],
         ["Not live bounties", data.metrics.not_live_bounties || 0],
-        ["Pending submissions", data.metrics.pending_submissions || 0],
+        ["Refund candidates", data.metrics.refund_candidates || 0],
         ["Queued payout value", formatAda(data.metrics.queued_payout_ada || 0)],
       ];
     }
@@ -290,7 +354,8 @@ export function DashboardPage() {
                         <article className={styles.queueItem} key={(item as Bounty).id}>
                           <div>
                             <h3>{(item as Bounty).title}</h3>
-                            <p>{normalizeStatus((item as Bounty).status)} - {getFundingState(item as Bounty)}</p>
+                            <p>Posted by {getPosterLabel(item as Bounty)} · {getFundingState(item as Bounty)}</p>
+                            <small className={styles.lifecycleNote}>{getBountyLifecycleNote(item as Bounty)}</small>
                           </div>
                           <span>{formatAda((item as Bounty).reward_amount)}</span>
                           <BountyReviewActions bounty={item as Bounty} actionId={actionId} runAction={runAction} />
@@ -419,10 +484,10 @@ function BountyTable({ bounties }: { bounties: Bounty[] }) {
       </div>
       {bounties.map((bounty) => (
         <div className={styles.tableRow} role="row" key={bounty.id}>
-          <span role="cell">{bounty.title}</span>
-          <span role="cell">{formatAda(bounty.reward_amount)}</span>
-          <span role="cell"><b>{normalizeStatus(bounty.status)}</b></span>
-          <span role="cell">{formatDate(bounty.created_at)}</span>
+          <span role="cell" data-label="Bounty">{bounty.title}</span>
+          <span role="cell" data-label="Reward">{formatAda(bounty.reward_amount)}</span>
+          <span role="cell" data-label="Status"><b>{normalizeStatus(bounty.status)}</b></span>
+          <span role="cell" data-label="Updated">{formatDate(bounty.created_at)}</span>
         </div>
       ))}
     </div>
@@ -504,6 +569,7 @@ function AdminBountyTable({
     <div className={`${styles.activityTable} ${styles.adminBountyTable}`} role="table" aria-label="Not-live bounties">
       <div className={styles.tableHead} role="row">
         <span role="columnheader">Bounty</span>
+        <span role="columnheader">Poster</span>
         <span role="columnheader">Funding</span>
         <span role="columnheader">Reward</span>
         <span role="columnheader">Status</span>
@@ -511,14 +577,18 @@ function AdminBountyTable({
       </div>
       {bounties.map((bounty) => (
         <div className={styles.tableRow} role="row" key={bounty.id}>
-          <span role="cell">
+          <span role="cell" data-label="Bounty">
             <strong>{bounty.title}</strong>
-            <small>{bounty.escrow_tx_hash ? bounty.escrow_tx_hash : "No escrow transaction recorded"}</small>
+            <small>{getBountyLifecycleNote(bounty)}</small>
           </span>
-          <span role="cell">{getFundingState(bounty)}</span>
-          <span role="cell">{formatAda(bounty.reward_amount)}</span>
-          <span role="cell"><b>{normalizeStatus(bounty.status)}</b></span>
-          <span role="cell" className={styles.tableActions}>
+          <span role="cell" data-label="Poster">
+            <strong>{getPosterLabel(bounty)}</strong>
+            <small>{bounty.poster?.stake_address || bounty.created_by || "Unknown poster"}</small>
+          </span>
+          <span role="cell" data-label="Funding">{getFundingState(bounty)}</span>
+          <span role="cell" data-label="Reward">{formatAda(bounty.reward_amount)}</span>
+          <span role="cell" data-label="Status"><b>{normalizeStatus(bounty.status)}</b></span>
+          <span role="cell" data-label="Action" className={styles.tableActions}>
             <BountyReviewActions bounty={bounty} actionId={actionId} runAction={runAction} />
           </span>
         </div>
@@ -536,56 +606,87 @@ function SubmissionTable({
   actionId: string;
   runAction: (id: string, action: () => Promise<Response>, successMessage: string) => Promise<void>;
 }) {
-  return (
-    <div className={styles.activityTable} role="table" aria-label="Pending submissions">
-      <div className={styles.tableHead} role="row">
-        <span role="columnheader">Submission</span>
-        <span role="columnheader">Poster Rec.</span>
-        <span role="columnheader">Status</span>
-        <span role="columnheader">Action</span>
+  const groupedSubmissions = groupSubmissionsByBounty(submissions);
+
+  if (submissions.length === 0) {
+    return (
+      <div className={styles.emptyState}>
+        <h2>No pending submissions</h2>
+        <p>There are no contributor submissions waiting for admin review.</p>
       </div>
-      {submissions.map((submission) => (
-        <div className={styles.tableRow} role="row" key={submission.id}>
-          <span role="cell">{getSubmissionBounty(submission)?.title || submission.content || "Submission"}</span>
-          <span role="cell">{normalizeStatus(submission.poster_review_status)}</span>
-          <span role="cell"><b>{normalizeStatus(submission.status)}</b></span>
-          <span role="cell" className={styles.tableActions}>
-            <button
-              type="button"
-              disabled={actionId === `${submission.id}:approve`}
-              onClick={() =>
-                void runAction(
-                  `${submission.id}:approve`,
-                  () =>
-                    authFetch(`/api/submissions/${submission.id}`, {
-                      method: "PATCH",
-                      body: JSON.stringify({ status: "approved" }),
-                    }),
-                  "Submission approved for payout.",
-                )
-              }
-            >
-              Approve
-            </button>
-            <button
-              type="button"
-              disabled={actionId === `${submission.id}:reject`}
-              onClick={() =>
-                void runAction(
-                  `${submission.id}:reject`,
-                  () =>
-                    authFetch(`/api/submissions/${submission.id}`, {
-                      method: "PATCH",
-                      body: JSON.stringify({ status: "rejected" }),
-                    }),
-                  "Submission rejected.",
-                )
-              }
-            >
-              Reject
-            </button>
-          </span>
-        </div>
+    );
+  }
+
+  return (
+    <div className={styles.submissionGroups}>
+      {groupedSubmissions.map((group) => (
+        <section className={styles.submissionGroup} key={group.bounty?.id || group.submissions[0]?.bounty_id || "unknown"}>
+          <header className={styles.submissionGroupHeader}>
+            <div>
+              <h3>{group.bounty?.title || "Unlinked bounty"}</h3>
+              <p>
+                {formatAda(group.bounty?.reward_amount)} · {group.submissions.length} pending submission
+                {group.submissions.length === 1 ? "" : "s"}
+              </p>
+            </div>
+            <b>{normalizeStatus(group.bounty?.status)}</b>
+          </header>
+
+          <div className={`${styles.activityTable} ${styles.submissionTable}`} role="table" aria-label={`${group.bounty?.title || "Bounty"} pending submissions`}>
+            <div className={styles.tableHead} role="row">
+              <span role="columnheader">Contributor</span>
+              <span role="columnheader">Poster Rec.</span>
+              <span role="columnheader">Status</span>
+              <span role="columnheader">Action</span>
+            </div>
+            {group.submissions.map((submission) => (
+              <div className={styles.tableRow} role="row" key={submission.id}>
+                <span role="cell" data-label="Contributor">
+                  <strong>{shortId(submission.contributor_id)}</strong>
+                  <small>{submission.content || "No submission notes"}</small>
+                </span>
+                <span role="cell" data-label="Poster Rec.">{normalizeStatus(submission.poster_review_status)}</span>
+                <span role="cell" data-label="Status"><b>{normalizeStatus(submission.status)}</b></span>
+                <span role="cell" data-label="Action" className={styles.tableActions}>
+                  <button
+                    type="button"
+                    disabled={actionId === `${submission.id}:approve`}
+                    onClick={() =>
+                      void runAction(
+                        `${submission.id}:approve`,
+                        () =>
+                          authFetch(`/api/submissions/${submission.id}`, {
+                            method: "PATCH",
+                            body: JSON.stringify({ status: "approved" }),
+                          }),
+                        "Submission approved for payout.",
+                      )
+                    }
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    disabled={actionId === `${submission.id}:reject`}
+                    onClick={() =>
+                      void runAction(
+                        `${submission.id}:reject`,
+                        () =>
+                          authFetch(`/api/submissions/${submission.id}`, {
+                            method: "PATCH",
+                            body: JSON.stringify({ status: "rejected" }),
+                          }),
+                        "Submission rejected.",
+                      )
+                    }
+                  >
+                    Reject
+                  </button>
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
       ))}
     </div>
   );

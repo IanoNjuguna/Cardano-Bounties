@@ -330,6 +330,10 @@
   font-size: 12px;
 }
 
+.queueItem .lifecycleNote {
+  margin-top: 6px;
+}
+
 .queueItem span {
   border-radius: 999px;
   background: var(--blue-soft);
@@ -388,6 +392,7 @@
 .activityTable {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .tableHead,
@@ -409,6 +414,7 @@
 
 .tableRow {
   min-height: 50px;
+  min-width: 0;
   border: 1px solid var(--line-soft);
   border-radius: 10px;
   background: #fbfcfe;
@@ -420,6 +426,10 @@
 .tableRow span:first-child {
   color: #20242b;
   font-weight: 650;
+}
+
+.tableRow > span {
+  min-width: 0;
 }
 
 .tableRow small {
@@ -434,6 +444,13 @@
   white-space: nowrap;
 }
 
+.lifecycleNote {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .tableRow b {
   display: inline-flex;
   border-radius: 999px;
@@ -446,11 +463,59 @@
 .adminBountyTable .tableHead,
 .adminBountyTable .tableRow {
   grid-template-columns:
-    minmax(240px, 1.5fr)
-    minmax(130px, 0.8fr)
-    minmax(110px, 0.7fr)
-    minmax(120px, 0.7fr)
-    minmax(160px, 0.9fr);
+    minmax(220px, 1.5fr)
+    minmax(150px, 0.9fr)
+    minmax(112px, 0.7fr)
+    minmax(88px, 0.55fr)
+    minmax(112px, 0.65fr)
+    minmax(150px, 0.8fr);
+}
+
+.submissionGroups {
+  display: grid;
+  gap: 14px;
+}
+
+.submissionGroup {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: #fbfcfe;
+  padding: 12px;
+}
+
+.submissionGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.submissionGroupHeader h3 {
+  color: #20242b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.submissionGroupHeader p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.submissionGroupHeader b {
+  display: inline-flex;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.submissionTable .tableHead,
+.submissionTable .tableRow {
+  grid-template-columns: minmax(220px, 1.4fr) minmax(120px, 0.7fr) minmax(110px, 0.6fr) minmax(150px, 0.8fr);
 }
 
 @media (max-width: 1100px) {
@@ -518,10 +583,53 @@
   }
 
   .tablePanel {
-    overflow-x: auto;
+    overflow: visible;
   }
 
   .activityTable {
-    min-width: 680px;
+    min-width: 0;
+  }
+
+  .tableHead {
+    display: none;
+  }
+
+  .tableRow,
+  .adminBountyTable .tableRow,
+  .submissionTable .tableRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 12px;
+  }
+
+  .tableRow > span {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+
+  .tableRow > span::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .tableActions {
+    justify-content: stretch;
+  }
+
+  .tableActions button {
+    flex: 1;
+  }
+
+  .submissionGroupHeader {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

@@ -78,18 +78,25 @@
 
 .exploreToolbar {
   display: grid;
-  grid-template-columns: minmax(260px, 360px) 1fr;
-  gap: 18px;
-  align-items: end;
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, 280px);
+  gap: 14px 18px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 16px;
   margin-bottom: 24px;
+  box-shadow: var(--shadow-soft);
 }
 
-.searchField {
+.searchField,
+.selectField {
   display: grid;
   gap: 8px;
 }
 
-.searchField input {
+.searchField input,
+.selectField select {
   width: 100%;
   height: 44px;
   border: 1px solid var(--line);
@@ -103,14 +110,49 @@
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
-.searchField input:focus {
+.selectField select {
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, #64748b 50%) calc(100% - 18px) 52% / 6px 6px no-repeat,
+    linear-gradient(135deg, #64748b 50%, transparent 50%) calc(100% - 12px) 52% / 6px 6px no-repeat,
+    #fff;
+  cursor: pointer;
+}
+
+.searchField input:focus,
+.selectField select:focus {
   border-color: rgba(1, 81, 194, 0.5);
   box-shadow: 0 0 0 4px var(--blue-soft);
 }
 
+.filterControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.clearFilters {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #4b5563;
+  padding: 0 13px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clearFilters:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .typeFilters {
   display: flex;
-  justify-content: flex-end;
+  grid-column: 1 / -1;
+  justify-content: flex-start;
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -133,6 +175,19 @@
   border-color: transparent;
   background: var(--blue);
   color: #fff;
+}
+
+.toolbarSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  grid-column: 1 / -1;
+  gap: 16px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .bountyGrid {
@@ -259,6 +314,48 @@
   font-size: 13px;
 }
 
+.exploreState button,
+.pagination button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: #353a43;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.exploreState button {
+  margin-top: 16px;
+  border-color: rgba(1, 81, 194, 0.24);
+  background: var(--blue);
+  color: #fff;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.pagination span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .bountyCardSkeleton {
   gap: 14px;
 }
@@ -318,8 +415,12 @@
     justify-content: start;
   }
 
-  .typeFilters {
-    justify-content: flex-start;
+  .filterControls {
+    grid-template-columns: 1fr;
+  }
+
+  .clearFilters {
+    width: 100%;
   }
 
   .bountyGrid {
@@ -339,6 +440,16 @@
   .exploreSummary,
   .bountyGrid {
     grid-template-columns: 1fr;
+  }
+
+  .toolbarSummary,
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination button {
+    width: 100%;
   }
 }
 
