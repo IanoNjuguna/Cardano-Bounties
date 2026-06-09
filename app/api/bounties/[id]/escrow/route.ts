@@ -44,7 +44,10 @@ export async function POST(
     .single();
 
   if (fetchError || !bounty) {
-    return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
+    // Surface Supabase error for debugging (temporary)
+    console.error("Supabase fetch error for bounty id", id, fetchError);
+    const debug = fetchError ? (fetchError.message || fetchError) : undefined;
+    return NextResponse.json({ error: "Bounty not found", debug }, { status: 404 });
   }
 
   if (bounty.created_by !== userId) {
