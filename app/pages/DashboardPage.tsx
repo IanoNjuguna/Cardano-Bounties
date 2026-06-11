@@ -72,6 +72,14 @@ type DashboardResponse = {
   error?: string;
 };
 
+type AdminTab = "approval" | "submissions" | "bounties";
+
+const adminTabs: Array<{ id: AdminTab; label: string }> = [
+  { id: "approval", label: "Approval queue" },
+  { id: "submissions", label: "Submission review" },
+  { id: "bounties", label: "All bounties" },
+];
+
 function formatAda(value: number | string | null | undefined) {
   const amount = Number(value || 0);
   return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 }).format(amount)} ADA`;
@@ -98,6 +106,36 @@ function getSubmissionBounty(submission: Submission) {
   if (submission.bounty) return submission.bounty;
   if (Array.isArray(submission.bounties)) return submission.bounties[0];
   return submission.bounties || null;
+}
+
+function formatRelativeTime(value: string | null | undefined) {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not recorded";
+
+  const seconds = Math.max(1, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (seconds < 60) return "Just now";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+
+  return `${Math.floor(months / 12)}y ago`;
+}
+
+function isOlderThanHours(value: string | null | undefined, hours: number) {
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  return Date.now() - date.getTime() > hours * 60 * 60 * 1000;
 }
 
 function groupSubmissionsByBounty(submissions: Submission[]) {
@@ -164,13 +202,34 @@ function getBountyLifecycleNote(bounty: Bounty) {
   return normalizeStatus(bounty.status);
 }
 
+function getBountySubmissions(bounty: Bounty | null | undefined) {
+  return bounty?.submissions || [];
+}
+
+function getSubmissionProgress(bounty: Bounty | null | undefined) {
+  const submissions = getBountySubmissions(bounty);
+  const accepted = submissions.filter((submission) =>
+    ["approved", "paid"].includes(submission.status),
+  ).length;
+  const total = Math.max(submissions.length, 1);
+  return Math.min(100, Math.round((accepted / total) * 100));
+}
+
 export function DashboardPage() {
-  const { connected, isAuthenticated, role, reauthenticate } = useAppWallet();
+  const { connected, disconnectWallet, isAuthenticated, role, reauthenticate, stakeAddress } = useAppWallet();
   const toast = useToast();
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionId, setActionId] = useState("");
+  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>(() => {
+    if (typeof window === "undefined") return "approval";
+    const savedTab = window.localStorage.getItem("admin_dashboard_tab") as AdminTab | null;
+    return savedTab && adminTabs.some((tab) => tab.id === savedTab) ? savedTab : "approval";
+  });
+  const [selectedApprovalId, setSelectedApprovalId] = useState("");
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState("");
+  const [selectedBountyId, setSelectedBountyId] = useState("");
 
   const dashboardRole = role === "admin" ? "admin" : "poster";
 
@@ -202,12 +261,28 @@ export function DashboardPage() {
   }, [dashboardRole, isAuthenticated]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    const initialTimer = window.setTimeout(() => {
       void loadDashboard();
     }, 0);
 
-    return () => window.clearTimeout(timer);
-  }, [loadDashboard]);
+    if (!isAuthenticated) {
+      return () => window.clearTimeout(initialTimer);
+    }
+
+    const timer = window.setInterval(() => {
+      void loadDashboard();
+    }, 120_000);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
+  }, [isAuthenticated, loadDashboard]);
+
+  function updateAdminTab(tab: AdminTab) {
+    setActiveAdminTab(tab);
+    window.localStorage.setItem("admin_dashboard_tab", tab);
+  }
 
   async function ensureAuth() {
     if (!connected) throw new Error("Connect your wallet first.");
@@ -256,7 +331,63 @@ export function DashboardPage() {
   const primaryQueueTitle = dashboardRole === "admin" ? "Bounties ready to approve" : "Submissions awaiting poster review";
   const primaryQueue =
     dashboardRole === "admin" ? data?.queues.bounty_reviews || [] : data?.queues.pending_submission_reviews || [];
-  const nonLiveBounties = data?.queues.non_live_bounties || [];
+  const shellCounts = useMemo(
+    () => ({
+      pendingBounties: data?.metrics.awaiting_bounty_reviews || 0,
+      submissionReviews: data?.metrics.pending_submissions || 0,
+      payouts: data?.metrics.approved_payouts || 0,
+      disputes: 0,
+      posterReviews: data?.metrics.pending_submission_reviews || 0,
+    }),
+    [data],
+  );
+  const navGroups = useMemo(
+    () =>
+      dashboardRole === "admin"
+        ? [
+            {
+              label: "Overview",
+              items: [{ href: "/dashboard", label: "Overview", count: 0 }],
+            },
+            {
+              label: "Review",
+              items: [
+                { href: "/dashboard/pending", label: "Pending", count: shellCounts.pendingBounties },
+                { href: "/dashboard/submissions", label: "Submissions", count: shellCounts.submissionReviews },
+                { href: "/dashboard/payouts", label: "Payouts", count: shellCounts.payouts },
+              ],
+            },
+            {
+              label: "Manage",
+              items: [
+                { href: "/dashboard/bounties", label: "Bounties", count: 0 },
+                { href: "/dashboard/posters", label: "Posters", count: 0 },
+                { href: "/dashboard/hunters", label: "Hunters", count: 0 },
+                { href: "/dashboard/disputes", label: "Disputes", count: shellCounts.disputes },
+              ],
+            },
+            {
+              label: "System",
+              items: [
+                { href: "/dashboard/treasury", label: "Treasury", count: 0 },
+                { href: "/dashboard/settings", label: "Settings", count: 0 },
+              ],
+            },
+          ]
+        : [
+            {
+              label: "Workspace",
+              items: [
+                { href: "/dashboard", label: "Overview", count: 0 },
+                { href: "/post-bounty", label: "Post bounty", count: 0 },
+                { href: "/explore", label: "Explore", count: 0 },
+                { href: "/dashboard/reviews", label: "Reviews", count: shellCounts.posterReviews },
+              ],
+            },
+          ],
+    [dashboardRole, shellCounts],
+  );
+  const topbarActionLabel = dashboardRole === "admin" ? "Review queue" : "Post bounty";
 
   return (
     <main className={styles.dashboardShell}>
@@ -270,14 +401,36 @@ export function DashboardPage() {
           <strong>{dashboardRole === "admin" ? "Platform operations" : "Project workspace"}</strong>
         </div>
 
-        <nav className={styles.sideNav}>
-          <Link href="/dashboard" className={styles.activeNav}>Overview</Link>
-          <Link href="/post-bounty">Post bounty</Link>
-          <Link href="/explore">Explore</Link>
+        <nav className={styles.sideNav} aria-label="Dashboard sections">
+          {navGroups.map((group) => (
+            <section className={styles.navGroup} key={group.label}>
+              <span>{group.label}</span>
+              {group.items.map((item) => (
+                <Link
+                  href={item.href}
+                  className={item.href === "/dashboard" ? styles.activeNav : undefined}
+                  key={item.href}
+                >
+                  {item.label}
+                  {item.count > 0 ? <b>{item.count}</b> : null}
+                </Link>
+              ))}
+            </section>
+          ))}
         </nav>
 
         <div className={styles.walletSlot}>
-          <WalletConnect />
+          {connected ? (
+            <div className={styles.shellWallet}>
+              <span>Connected wallet</span>
+              <strong>{shortId(stakeAddress)}</strong>
+              <button type="button" onClick={disconnectWallet}>
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <WalletConnect />
+          )}
         </div>
       </aside>
 
@@ -291,6 +444,31 @@ export function DashboardPage() {
                 ? "Approve escrow-funded bounties, review submissions, and record payout or refund transactions."
                 : "Track bounties you posted, review contributor submissions, and send recommendations to admin review."}
             </p>
+          </div>
+          <div className={styles.topbarControls} aria-label="Dashboard controls">
+            <label>
+              <span>Search</span>
+              <input type="search" placeholder="Search dashboard" />
+            </label>
+            <label>
+              <span>Filter</span>
+              <select defaultValue="all">
+                <option value="all">All queues</option>
+                <option value="attention">Needs attention</option>
+                <option value="funded">Funded</option>
+              </select>
+            </label>
+            <label>
+              <span>Date range</span>
+              <select defaultValue="30d">
+                <option value="7d">Last 7 days</option>
+                <option value="30d">Last 30 days</option>
+                <option value="90d">Last 90 days</option>
+              </select>
+            </label>
+            <Link href={dashboardRole === "admin" ? "/dashboard/pending" : "/post-bounty"}>
+              {topbarActionLabel}
+            </Link>
           </div>
         </header>
 
@@ -337,6 +515,24 @@ export function DashboardPage() {
               ))}
             </section>
 
+            {dashboardRole === "admin" ? (
+              <AdminWorkspace
+                actionId={actionId}
+                activeTab={activeAdminTab}
+                allBounties={data?.queues.bounties || []}
+                approvalBounties={data?.queues.bounty_reviews || []}
+                selectedApprovalId={selectedApprovalId}
+                selectedBountyId={selectedBountyId}
+                selectedSubmissionId={selectedSubmissionId}
+                setSelectedApprovalId={setSelectedApprovalId}
+                setSelectedBountyId={setSelectedBountyId}
+                setSelectedSubmissionId={setSelectedSubmissionId}
+                submissions={data?.queues.pending_submissions || []}
+                updateAdminTab={updateAdminTab}
+                runAction={runAction}
+              />
+            ) : (
+              <>
             <section className={styles.workspaceGrid}>
               <div className={styles.panel}>
                 <div className={styles.panelHeader}>
@@ -350,7 +546,7 @@ export function DashboardPage() {
                 <div className={styles.queueList}>
                   {primaryQueue.length > 0 ? (
                     primaryQueue.map((item) =>
-                      dashboardRole === "admin" ? (
+                      false ? (
                         <article className={styles.queueItem} key={(item as Bounty).id}>
                           <div>
                             <h3>{(item as Bounty).title}</h3>
@@ -422,40 +618,11 @@ export function DashboardPage() {
                   <i style={{ width: primaryQueue.length === 0 ? "100%" : "54%" }} />
                 </div>
                 <p>
-                  {dashboardRole === "admin"
-                    ? "Funded bounties should be approved or rejected before they appear publicly."
-                    : "Poster review recommendations help admin process submissions and payouts faster."}
+                  Poster review recommendations help admin process submissions and payouts faster.
                 </p>
               </aside>
             </section>
 
-            {dashboardRole === "admin" ? (
-              <>
-                <section className={styles.tablePanel}>
-                  <div className={styles.panelHeader}>
-                    <div>
-                      <span>Bounties</span>
-                      <h2>All not-live bounties</h2>
-                    </div>
-                  </div>
-                  <AdminBountyTable bounties={nonLiveBounties} actionId={actionId} runAction={runAction} />
-                </section>
-
-                <section className={styles.tablePanel}>
-                  <div className={styles.panelHeader}>
-                    <div>
-                      <span>Submissions</span>
-                      <h2>Pending admin submission review</h2>
-                    </div>
-                  </div>
-                  <SubmissionTable
-                    submissions={data?.queues.pending_submissions || []}
-                    actionId={actionId}
-                    runAction={runAction}
-                  />
-                </section>
-              </>
-            ) : (
               <section className={styles.tablePanel}>
                 <div className={styles.panelHeader}>
                   <div>
@@ -465,11 +632,464 @@ export function DashboardPage() {
                 </div>
                 <BountyTable bounties={data?.queues.bounties || []} />
               </section>
+              </>
             )}
           </>
         )}
       </section>
     </main>
+  );
+}
+
+function AdminWorkspace({
+  actionId,
+  activeTab,
+  allBounties,
+  approvalBounties,
+  selectedApprovalId,
+  selectedBountyId,
+  selectedSubmissionId,
+  setSelectedApprovalId,
+  setSelectedBountyId,
+  setSelectedSubmissionId,
+  submissions,
+  updateAdminTab,
+  runAction,
+}: {
+  actionId: string;
+  activeTab: AdminTab;
+  allBounties: Bounty[];
+  approvalBounties: Bounty[];
+  selectedApprovalId: string;
+  selectedBountyId: string;
+  selectedSubmissionId: string;
+  setSelectedApprovalId: (id: string) => void;
+  setSelectedBountyId: (id: string) => void;
+  setSelectedSubmissionId: (id: string) => void;
+  submissions: Submission[];
+  updateAdminTab: (tab: AdminTab) => void;
+  runAction: (id: string, action: () => Promise<Response>, successMessage: string) => Promise<void>;
+}) {
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [adminNote, setAdminNote] = useState("");
+  const sortedApprovalBounties = useMemo(
+    () =>
+      [...approvalBounties].sort(
+        (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
+      ),
+    [approvalBounties],
+  );
+  const groupedSubmissions = useMemo(() => groupSubmissionsByBounty(submissions), [submissions]);
+  const visibleBounties = useMemo(
+    () =>
+      statusFilters.length > 0
+        ? allBounties.filter((bounty) => statusFilters.includes(bounty.status))
+        : allBounties,
+    [allBounties, statusFilters],
+  );
+
+  const selectedApproval = sortedApprovalBounties.find((bounty) => bounty.id === selectedApprovalId) || null;
+  const selectedSubmission = submissions.find((submission) => submission.id === selectedSubmissionId) || null;
+  const selectedBounty = visibleBounties.find((bounty) => bounty.id === selectedBountyId) || null;
+  const statuses = [...new Set(allBounties.map((bounty) => bounty.status))];
+
+  function toggleStatusFilter(status: string) {
+    setStatusFilters((current) =>
+      current.includes(status) ? current.filter((item) => item !== status) : [...current, status],
+    );
+  }
+
+  return (
+    <section className={styles.adminWorkspace} aria-label="Admin workspace">
+      <div className={styles.workspaceTabs} role="tablist" aria-label="Admin review tabs">
+        {adminTabs.map((tab) => (
+          <button
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? styles.activeWorkspaceTab : undefined}
+            key={tab.id}
+            role="tab"
+            type="button"
+            onClick={() => updateAdminTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.reviewWorkspace}>
+        <aside className={styles.reviewListPane}>
+          {activeTab === "approval" ? (
+            <>
+              <div className={styles.listPaneHeader}>
+                <span>Oldest first</span>
+                <strong>{sortedApprovalBounties.length} pending</strong>
+              </div>
+              <div className={styles.reviewList}>
+                {sortedApprovalBounties.length > 0 ? (
+                  sortedApprovalBounties.map((bounty) => (
+                    <button
+                      className={selectedApprovalId === bounty.id ? styles.selectedReviewRow : undefined}
+                      key={bounty.id}
+                      type="button"
+                      onClick={() => setSelectedApprovalId(bounty.id)}
+                    >
+                      <strong>{bounty.title}</strong>
+                      <span>{formatAda(bounty.reward_amount)} · {shortId(bounty.poster?.stake_address || bounty.created_by)}</span>
+                      <small>
+                        {formatRelativeTime(bounty.created_at)}
+                        {isOlderThanHours(bounty.created_at, 24) ? " · urgent" : ""}
+                      </small>
+                    </button>
+                  ))
+                ) : (
+                  <div className={styles.emptyState}>
+                    <h2>No bounty approvals</h2>
+                    <p>Funded bounty approvals will appear here.</p>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : null}
+
+          {activeTab === "submissions" ? (
+            <div className={styles.submissionReviewList}>
+              {groupedSubmissions.length > 0 ? (
+                groupedSubmissions.map((group) => (
+                  <section key={group.bounty?.id || group.submissions[0]?.bounty_id || "unknown"}>
+                    <header>{group.bounty?.title || "Unlinked bounty"}</header>
+                    {group.submissions.map((submission) => (
+                      <button
+                        className={selectedSubmissionId === submission.id ? styles.selectedReviewRow : undefined}
+                        key={submission.id}
+                        type="button"
+                        onClick={() => setSelectedSubmissionId(submission.id)}
+                      >
+                        <strong>{shortId(submission.contributor_id)}</strong>
+                        <span>{formatRelativeTime(submission.submitted_at || submission.created_at)}</span>
+                        <small>Poster {normalizeStatus(submission.poster_review_status)}</small>
+                      </button>
+                    ))}
+                  </section>
+                ))
+              ) : (
+                <div className={styles.emptyState}>
+                  <h2>No submissions</h2>
+                  <p>Poster-approved submissions will appear here for final review.</p>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {activeTab === "bounties" ? (
+            <>
+              <div className={styles.statusFilters}>
+                {statuses.map((status) => (
+                  <button
+                    className={statusFilters.includes(status) ? styles.selectedStatusFilter : undefined}
+                    key={status}
+                    type="button"
+                    onClick={() => toggleStatusFilter(status)}
+                  >
+                    {normalizeStatus(status)}
+                  </button>
+                ))}
+              </div>
+              <div className={styles.reviewList}>
+                {visibleBounties.length > 0 ? (
+                  visibleBounties.map((bounty) => (
+                    <button
+                      className={selectedBountyId === bounty.id ? styles.selectedReviewRow : undefined}
+                      key={bounty.id}
+                      type="button"
+                      onClick={() => setSelectedBountyId(bounty.id)}
+                    >
+                      <strong>{bounty.title}</strong>
+                      <span>{formatAda(bounty.reward_amount)} · {normalizeStatus(bounty.status)}</span>
+                      <small>{getBountySubmissions(bounty).length} submissions</small>
+                      <i aria-hidden="true">
+                        <b style={{ width: `${getSubmissionProgress(bounty)}%` }} />
+                      </i>
+                    </button>
+                  ))
+                ) : (
+                  <div className={styles.emptyState}>
+                    <h2>No matching bounties</h2>
+                    <p>Clear status filters to show every bounty.</p>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : null}
+        </aside>
+
+        <section className={styles.reviewDetailPane}>
+          {activeTab === "approval" ? (
+            <ApprovalDetail bounty={selectedApproval} actionId={actionId} runAction={runAction} />
+          ) : null}
+          {activeTab === "submissions" ? (
+            <SubmissionReviewDetail
+              actionId={actionId}
+              adminNote={adminNote}
+              setAdminNote={setAdminNote}
+              submission={selectedSubmission}
+              runAction={runAction}
+            />
+          ) : null}
+          {activeTab === "bounties" ? (
+            <AllBountyDetail bounty={selectedBounty} updateAdminTab={updateAdminTab} />
+          ) : null}
+        </section>
+      </div>
+    </section>
+  );
+}
+
+function DetailEmptyState({ title, message }: { title: string; message: string }) {
+  return (
+    <div className={styles.detailEmptyState}>
+      <h2>{title}</h2>
+      <p>{message}</p>
+    </div>
+  );
+}
+
+function ApprovalDetail({
+  bounty,
+  actionId,
+  runAction,
+}: {
+  bounty: Bounty | null;
+  actionId: string;
+  runAction: (id: string, action: () => Promise<Response>, successMessage: string) => Promise<void>;
+}) {
+  if (!bounty) {
+    return <DetailEmptyState title="Select a bounty" message="Choose a funded bounty from the approval queue." />;
+  }
+
+  return (
+    <div className={styles.detailStack}>
+      <section className={styles.detailSection}>
+        <div className={styles.detailTitleRow}>
+          <div>
+            <span>{normalizeStatus(bounty.status)}</span>
+            <h2>{bounty.title}</h2>
+          </div>
+          <strong>{formatAda(bounty.reward_amount)}</strong>
+        </div>
+        <p>{bounty.type || "General"} · locked in escrow</p>
+        {bounty.escrow_tx_hash ? (
+          <a href={`https://preprod.cardanoscan.io/transaction/${bounty.escrow_tx_hash}`} rel="noreferrer" target="_blank">
+            {shortId(bounty.escrow_tx_hash)}
+          </a>
+        ) : null}
+      </section>
+
+      <section className={styles.detailSection}>
+        <span>Description</span>
+        <p>{bounty.description || "No description provided."}</p>
+      </section>
+
+      <section className={styles.detailGrid}>
+        <div><span>Reward</span><strong>{formatAda(bounty.reward_amount)}</strong></div>
+        <div><span>Deadline</span><strong>{formatDate(bounty.created_at)}</strong></div>
+        <div><span>Escrow</span><strong>{getFundingState(bounty)}</strong></div>
+        <div><span>Poster</span><strong>{shortId(bounty.poster?.stake_address || bounty.created_by)}</strong></div>
+      </section>
+
+      <section className={styles.detailSection}>
+        <span>Admin checklist</span>
+        <label><input type="checkbox" /> Scope is clear</label>
+        <label><input type="checkbox" /> Reward matches effort</label>
+        <label><input type="checkbox" /> Escrow transaction is present</label>
+        <label><input type="checkbox" /> Public brief is safe</label>
+        <label><input type="checkbox" /> Instructions are actionable</label>
+      </section>
+
+      <div className={styles.detailActionBar}>
+        <button
+          type="button"
+          disabled={actionId === `${bounty.id}:rejected`}
+          onClick={() =>
+            void runAction(
+              `${bounty.id}:rejected`,
+              () =>
+                authFetch(`/api/bounties/${bounty.id}`, {
+                  method: "PATCH",
+                  body: JSON.stringify({ status: "rejected" }),
+                }),
+              "Bounty rejected.",
+            )
+          }
+        >
+          Reject
+        </button>
+        <button type="button">Message poster</button>
+        <button
+          type="button"
+          disabled={actionId === `${bounty.id}:open`}
+          onClick={() =>
+            void runAction(
+              `${bounty.id}:open`,
+              () =>
+                authFetch(`/api/bounties/${bounty.id}`, {
+                  method: "PATCH",
+                  body: JSON.stringify({ status: "open" }),
+                }),
+              "Bounty approved and opened.",
+            )
+          }
+        >
+          Approve
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SubmissionReviewDetail({
+  actionId,
+  adminNote,
+  setAdminNote,
+  submission,
+  runAction,
+}: {
+  actionId: string;
+  adminNote: string;
+  setAdminNote: (value: string) => void;
+  submission: Submission | null;
+  runAction: (id: string, action: () => Promise<Response>, successMessage: string) => Promise<void>;
+}) {
+  const bounty = submission ? getSubmissionBounty(submission) : null;
+
+  if (!submission) {
+    return <DetailEmptyState title="Select a submission" message="Choose a contributor submission for final admin review." />;
+  }
+
+  return (
+    <div className={styles.detailStack}>
+      <div className={styles.stepStrip} aria-label="Submission progress">
+        <span>Hunter submits</span>
+        <span>Poster reviews</span>
+        <span>Admin final review</span>
+        <span>Payout</span>
+      </div>
+      <section className={styles.detailSection}>
+        <span>{bounty?.title || "Unlinked bounty"}</span>
+        <h2>{shortId(submission.contributor_id)}</h2>
+        <p>{formatRelativeTime(submission.submitted_at || submission.created_at)}</p>
+      </section>
+      <section className={styles.detailSection}>
+        <span>Submission content</span>
+        <p>{submission.content || "No submission content provided."}</p>
+      </section>
+      <section className={styles.noticeSection}>
+        <span>Poster review note</span>
+        <p>{submission.poster_feedback || normalizeStatus(submission.poster_review_status)}</p>
+      </section>
+      <section className={styles.detailSection}>
+        <label htmlFor="admin-note">Admin note</label>
+        <textarea
+          id="admin-note"
+          placeholder="Add an internal note for this final review."
+          value={adminNote}
+          onChange={(event) => setAdminNote(event.target.value)}
+        />
+      </section>
+      <div className={styles.detailActionBar}>
+        <button
+          type="button"
+          disabled={actionId === `${submission.id}:reject`}
+          onClick={() =>
+            void runAction(
+              `${submission.id}:reject`,
+              () =>
+                authFetch(`/api/submissions/${submission.id}`, {
+                  method: "PATCH",
+                  body: JSON.stringify({ status: "rejected", feedback: adminNote }),
+                }),
+              "Submission rejected.",
+            )
+          }
+        >
+          Reject
+        </button>
+        <button type="button">Dispute</button>
+        <button
+          type="button"
+          disabled={actionId === `${submission.id}:approve`}
+          onClick={() =>
+            void runAction(
+              `${submission.id}:approve`,
+              () =>
+                authFetch(`/api/submissions/${submission.id}`, {
+                  method: "PATCH",
+                  body: JSON.stringify({ status: "approved", feedback: adminNote }),
+                }),
+              "Submission approved for payout.",
+            )
+          }
+        >
+          Approve
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AllBountyDetail({
+  bounty,
+  updateAdminTab,
+}: {
+  bounty: Bounty | null;
+  updateAdminTab: (tab: AdminTab) => void;
+}) {
+  if (!bounty) {
+    return <DetailEmptyState title="Select a bounty" message="Choose a bounty to inspect its lifecycle and submissions." />;
+  }
+
+  const submissions = getBountySubmissions(bounty);
+  const approved = submissions.filter((submission) => ["approved", "paid"].includes(submission.status)).length;
+  const pending = submissions.filter((submission) => submission.status === "pending").length;
+  const rejected = submissions.filter((submission) => submission.status === "rejected").length;
+
+  return (
+    <div className={styles.detailStack}>
+      <section className={styles.detailSection}>
+        <div className={styles.detailTitleRow}>
+          <div>
+            <span>{normalizeStatus(bounty.status)}</span>
+            <h2>{bounty.title}</h2>
+          </div>
+          <strong>{formatAda(bounty.reward_amount)}</strong>
+        </div>
+        <div className={styles.progressTrack} aria-label={`${getSubmissionProgress(bounty)} percent accepted`}>
+          <i style={{ width: `${getSubmissionProgress(bounty)}%` }} />
+        </div>
+      </section>
+      <section className={styles.detailGrid}>
+        <div><span>Poster</span><strong>{shortId(bounty.poster?.stake_address || bounty.created_by)}</strong></div>
+        <div><span>Posted</span><strong>{formatDate(bounty.created_at)}</strong></div>
+        <div><span>Deadline</span><strong>{formatDate(bounty.created_at)}</strong></div>
+        <div><span>Escrow tx</span><strong>{shortId(bounty.escrow_tx_hash)}</strong></div>
+      </section>
+      <section className={styles.detailSection}>
+        <span>Submission breakdown</span>
+        <button type="button" onClick={() => updateAdminTab("submissions")}>Pending: {pending}</button>
+        <button type="button" onClick={() => updateAdminTab("submissions")}>Approved: {approved}</button>
+        <button type="button" onClick={() => updateAdminTab("submissions")}>Rejected: {rejected}</button>
+      </section>
+      <section className={styles.timeline}>
+        <span>Lifecycle</span>
+        <p><i /> Created {formatRelativeTime(bounty.created_at)}</p>
+        <p><i /> Escrow {bounty.escrow_confirmed_at ? `confirmed ${formatRelativeTime(bounty.escrow_confirmed_at)}` : getFundingState(bounty)}</p>
+        <p><i /> Status {normalizeStatus(bounty.status)}</p>
+      </section>
+      <div className={styles.detailActionBar}>
+        <button type="button">Close bounty</button>
+        <button type="button">Edit</button>
+        <button type="button" onClick={() => updateAdminTab("submissions")}>Review submissions</button>
+      </div>
+    </div>
   );
 }
 
@@ -543,56 +1163,6 @@ function BountyReviewActions({
       >
         Reject
       </button>
-    </div>
-  );
-}
-
-function AdminBountyTable({
-  bounties,
-  actionId,
-  runAction,
-}: {
-  bounties: Bounty[];
-  actionId: string;
-  runAction: (id: string, action: () => Promise<Response>, successMessage: string) => Promise<void>;
-}) {
-  if (bounties.length === 0) {
-    return (
-      <div className={styles.emptyState}>
-        <h2>No not-live bounties</h2>
-        <p>Every funded bounty is either public, completed, or already processed.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`${styles.activityTable} ${styles.adminBountyTable}`} role="table" aria-label="Not-live bounties">
-      <div className={styles.tableHead} role="row">
-        <span role="columnheader">Bounty</span>
-        <span role="columnheader">Poster</span>
-        <span role="columnheader">Funding</span>
-        <span role="columnheader">Reward</span>
-        <span role="columnheader">Status</span>
-        <span role="columnheader">Action</span>
-      </div>
-      {bounties.map((bounty) => (
-        <div className={styles.tableRow} role="row" key={bounty.id}>
-          <span role="cell" data-label="Bounty">
-            <strong>{bounty.title}</strong>
-            <small>{getBountyLifecycleNote(bounty)}</small>
-          </span>
-          <span role="cell" data-label="Poster">
-            <strong>{getPosterLabel(bounty)}</strong>
-            <small>{bounty.poster?.stake_address || bounty.created_by || "Unknown poster"}</small>
-          </span>
-          <span role="cell" data-label="Funding">{getFundingState(bounty)}</span>
-          <span role="cell" data-label="Reward">{formatAda(bounty.reward_amount)}</span>
-          <span role="cell" data-label="Status"><b>{normalizeStatus(bounty.status)}</b></span>
-          <span role="cell" data-label="Action" className={styles.tableActions}>
-            <BountyReviewActions bounty={bounty} actionId={actionId} runAction={runAction} />
-          </span>
-        </div>
-      ))}
     </div>
   );
 }

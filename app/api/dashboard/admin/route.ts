@@ -129,6 +129,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       ),
     },
     queues: {
+      bounties,
       bounty_reviews: awaitingBounties,
       non_live_bounties: nonLiveBounties,
       pending_submissions: pendingSubmissions,
