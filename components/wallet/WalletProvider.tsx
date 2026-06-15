@@ -116,7 +116,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // 1. Get nonce
       const nonceRes = await fetch(`/api/auth/nonce?address=${activeStakeAddress}`);
       if (!nonceRes.ok) {
-        throw new Error("Failed to fetch login challenge from server.");
+        const nonceData = (await nonceRes.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(nonceData?.error || "Failed to fetch login challenge from server.");
       }
       const { nonce } = await nonceRes.json();
 
@@ -142,7 +143,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setToken(jwtToken);
 
       const decoded = decodeToken(jwtToken);
-      setRole(decoded?.role || "user");
+      setRole(decoded?.role || "contributor");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication signature failed.");
       window.localStorage.removeItem(STORAGE_TOKEN_KEY);
@@ -245,7 +246,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         if (storedToken && !isTokenExpired(storedToken)) {
           setToken(storedToken);
           const decoded = decodeToken(storedToken);
-          setRole(decoded?.role || "user");
+          setRole(decoded?.role || "contributor");
         } else {
           // Token expired or missing, require user signature re-authentication
           window.localStorage.removeItem(STORAGE_TOKEN_KEY);

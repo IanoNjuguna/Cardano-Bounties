@@ -38,7 +38,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const bounties = data || [];
+  const { data: user } = await supabaseAdmin
+    .from("users")
+    .select("id, stake_address, display_name, role, created_at")
+    .eq("id", userId)
+    .single();
+
+  const bounties = (data || []).map((bounty) => ({
+    ...bounty,
+    poster: user || null,
+  }));
   const submissions = bounties.flatMap((bounty) =>
     (bounty.submissions || []).map((submission: Record<string, unknown>) => ({
       ...submission,

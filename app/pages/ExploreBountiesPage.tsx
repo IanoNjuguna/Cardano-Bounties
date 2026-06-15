@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
@@ -16,6 +17,32 @@ type Bounty = {
   deadline: string | null;
   created_at: string | null;
   status?: string | null;
+  project_name?: string | null;
+  project_logo_url?: string | null;
+  projects?: {
+    name?: string | null;
+    logo_url?: string | null;
+  } | null;
+};
+
+type BountyPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+};
+
+type BountyListResponse = {
+  data?: Bounty[];
+  pagination?: BountyPagination;
+  error?: string;
+};
+
+type CategoryOption = {
+  value: string;
+  label: string;
 };
 
 const categoryLabels: Record<string, string> = {
@@ -30,6 +57,21 @@ const categoryLabels: Record<string, string> = {
   community: "Community",
   security: "Security",
 };
+
+const categoryOptions: CategoryOption[] = [
+  { value: "all", label: "All" },
+  { value: "development", label: "Code" },
+  { value: "design", label: "Design" },
+  { value: "content", label: "Content" },
+  { value: "documentation", label: "Docs" },
+  { value: "research", label: "Research" },
+  { value: "community", label: "Community" },
+  { value: "security", label: "Security" },
+  { value: "hackathon", label: "Hackathon" },
+  { value: "other", label: "Other" },
+];
+
+const PAGE_SIZE = 9;
 
 function normalizeType(type: string | null) {
   if (!type) return "Other";
@@ -69,63 +111,89 @@ function getDeadlineState(value: string | null) {
   return "Open";
 }
 
+function getProjectName(bounty: Bounty) {
+  return bounty.project_name || bounty.projects?.name || "Independent bounty";
+}
+
+function getProjectLogoUrl(bounty: Bounty) {
+  return bounty.project_logo_url || bounty.projects?.logo_url || "";
+}
+
 export function ExploreBountiesPage() {
   const [bounties, setBounties] = useState<Bounty[]>([]);
+  const [pagination, setPagination] = useState<BountyPagination>({
+    page: 1,
+    pageSize: PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [activeType, setActiveType] = useState("All");
+  const [activeType, setActiveType] = useState("all");
+  const [page, setPage] = useState(1);
+
+  const loadBounties = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(PAGE_SIZE),
+      });
+
+      if (query.trim()) params.set("search", query.trim());
+      if (activeType !== "all") params.set("type", activeType);
+
+      const response = await fetch(`/api/bounties?${params.toString()}`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+
+      const payload = (await response.json()) as BountyListResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Unable to load bounties right now.");
+      }
+
+      setBounties(Array.isArray(payload.data) ? payload.data : []);
+      setPagination(
+        payload.pagination || {
+          page,
+          pageSize: PAGE_SIZE,
+          total: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load bounties right now.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeType, page, query]);
 
   useEffect(() => {
-    let isMounted = true;
+    const timer = window.setTimeout(() => {
+      void loadBounties();
+    }, 0);
 
-    async function loadBounties() {
-      try {
-        setIsLoading(true);
-        setError("");
+    return () => window.clearTimeout(timer);
+  }, [loadBounties]);
 
-        const response = await fetch("/api/bounties", {
-          headers: { Accept: "application/json" },
-          cache: "no-store",
-        });
+  function updateSearch(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
 
-        if (!response.ok) {
-          throw new Error("Unable to load bounties right now.");
-        }
-
-        const data = (await response.json()) as Bounty[];
-        if (isMounted) setBounties(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : "Unable to load bounties right now.");
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    }
-
-    loadBounties();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const categories = useMemo(() => {
-    const uniqueTypes = new Set(bounties.map((bounty) => normalizeType(bounty.type)));
-    return ["All", ...Array.from(uniqueTypes).sort()];
-  }, [bounties]);
-
-  const filteredBounties = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return bounties.filter((bounty) => {
-      const type = normalizeType(bounty.type);
-      const matchesType = activeType === "All" || type === activeType;
-      const searchable = `${bounty.title} ${bounty.description} ${type}`.toLowerCase();
-      return matchesType && (!normalizedQuery || searchable.includes(normalizedQuery));
-    });
-  }, [activeType, bounties, query]);
+  function updateType(value: string) {
+    setActiveType(value);
+    setPage(1);
+  }
 
   const totalRewards = useMemo(
     () =>
@@ -156,7 +224,7 @@ export function ExploreBountiesPage() {
           <div className={styles.exploreSummary} aria-label="Bounty board summary">
             <div>
               <span>Open bounties</span>
-              <strong>{isLoading ? "--" : bounties.length}</strong>
+              <strong>{isLoading ? "--" : pagination.total}</strong>
             </div>
             <div>
               <span>Total rewards</span>
@@ -164,7 +232,7 @@ export function ExploreBountiesPage() {
             </div>
             <div>
               <span>Categories</span>
-              <strong>{isLoading ? "--" : Math.max(categories.length - 1, 0)}</strong>
+              <strong>{isLoading ? "--" : categoryOptions.length - 1}</strong>
             </div>
           </div>
         </div>
@@ -179,21 +247,47 @@ export function ExploreBountiesPage() {
                 type="search"
                 value={query}
                 placeholder="Search by title, type, or brief"
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => updateSearch(event.target.value)}
               />
             </label>
 
-            <div className={styles.typeFilters} aria-label="Filter by bounty type">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  className={activeType === category ? styles.isActive : ""}
-                  type="button"
-                  onClick={() => setActiveType(category)}
-                >
-                  {category}
-                </button>
-              ))}
+            <div className={styles.filterControls}>
+              <label className={styles.selectField}>
+                <span>Filter by category</span>
+                <select value={activeType} onChange={(event) => updateType(event.target.value)}>
+                  {categoryOptions.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                className={styles.clearFilters}
+                type="button"
+                disabled={!query && activeType === "all"}
+                onClick={() => {
+                  updateSearch("");
+                  updateType("all");
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+
+            <div className={styles.toolbarSummary} aria-live="polite">
+              <span>
+                {isLoading
+                  ? "Loading bounties"
+                  : pagination.total > 0
+                    ? `Showing ${(pagination.page - 1) * pagination.pageSize + 1}-${Math.min(
+                        pagination.page * pagination.pageSize,
+                        pagination.total,
+                      )} of ${pagination.total} bounties`
+                    : "No bounties found"}
+              </span>
+              <span>Page {pagination.page} of {pagination.totalPages}</span>
             </div>
           </div>
 
@@ -212,38 +306,78 @@ export function ExploreBountiesPage() {
             <div className={styles.exploreState} role="alert">
               <h2>Could not load bounties</h2>
               <p>{error}</p>
+              <button type="button" onClick={() => void loadBounties()}>
+                Retry
+              </button>
             </div>
-          ) : filteredBounties.length === 0 ? (
+          ) : bounties.length === 0 ? (
             <div className={styles.exploreState}>
               <h2>No matching bounties</h2>
               <p>Try a broader search or switch to another bounty type.</p>
             </div>
           ) : (
-            <div className={styles.bountyGrid}>
-              {filteredBounties.map((bounty) => (
-                <article className={styles.bountyCard} id={bounty.id} key={bounty.id}>
-                  <div className={styles.bountyCardTop}>
-                    <span>{normalizeType(bounty.type)}</span>
-                    <b>{getDeadlineState(bounty.deadline)}</b>
-                  </div>
-                  <h2>{bounty.title}</h2>
-                  <p>{bounty.description}</p>
-                  <dl className={styles.bountyMeta}>
-                    <div>
-                      <dt>Reward</dt>
-                      <dd>{formatAda(bounty.reward_amount)}</dd>
+            <>
+              <div className={styles.bountyGrid}>
+                {bounties.map((bounty) => (
+                  <article className={styles.bountyCard} id={bounty.id} key={bounty.id}>
+                    <div className={styles.bountyCardTop}>
+                      <span>{normalizeType(bounty.type)}</span>
+                      <b>{getDeadlineState(bounty.deadline)}</b>
                     </div>
-                    <div>
-                      <dt>Deadline</dt>
-                      <dd>{formatDate(bounty.deadline)}</dd>
+                    <div className={styles.projectIdentity}>
+                      <span aria-hidden="true" className={styles.projectLogo}>
+                        {getProjectLogoUrl(bounty) && (
+                          <Image
+                            src={getProjectLogoUrl(bounty)}
+                            alt=""
+                            width={36}
+                            height={36}
+                            className={styles.projectLogoImg}
+                            unoptimized
+                          />
+                        )}
+                      </span>
+                      <strong>{getProjectName(bounty)}</strong>
                     </div>
-                  </dl>
-                  <Link className={styles.bountyAction} href={`/bounties/${bounty.id}`}>
-                    View bounty
-                  </Link>
-                </article>
-              ))}
-            </div>
+                    <h2>{bounty.title}</h2>
+                    <p>{bounty.description}</p>
+                    <dl className={styles.bountyMeta}>
+                      <div>
+                        <dt>Reward</dt>
+                        <dd>{formatAda(bounty.reward_amount)}</dd>
+                      </div>
+                      <div>
+                        <dt>Deadline</dt>
+                        <dd>{formatDate(bounty.deadline)}</dd>
+                      </div>
+                    </dl>
+                    <Link className={styles.bountyAction} href={`/bounties/${bounty.id}`}>
+                      View bounty
+                    </Link>
+                  </article>
+                ))}
+              </div>
+
+              <nav className={styles.pagination} aria-label="Bounty pagination">
+                <button
+                  type="button"
+                  disabled={!pagination.hasPreviousPage || isLoading}
+                  onClick={() => setPage((current) => Math.max(current - 1, 1))}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={!pagination.hasNextPage || isLoading}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  Next
+                </button>
+              </nav>
+            </>
           )}
         </div>
       </section>

@@ -66,6 +66,14 @@
   line-height: 1.2;
 }
 
+.projectPreviewName {
+  display: block;
+  margin-top: 8px;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 750;
+}
+
 .briefPreview p {
   display: -webkit-box;
   min-height: 64px;
@@ -173,6 +181,12 @@
 .fieldGroup input,
 .fieldGroup select {
   height: 44px;
+}
+
+.fieldGroup input[type="file"] {
+  height: auto;
+  min-height: 44px;
+  padding: 10px 14px;
 }
 
 .fieldGroup textarea {

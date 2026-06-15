@@ -38,6 +38,43 @@
   line-height: 1.8;
 }
 
+.projectIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 18px;
+}
+
+.projectLogo {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background-color: #f8fafc;
+  background-image: linear-gradient(135deg, rgba(1, 81, 194, 0.12), rgba(17, 19, 24, 0.04));
+}
+
+.projectLogoImg {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+.projectIdentity strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #343942;
+  font-size: 13px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .heroActions {
   display: flex;
   gap: 12px;
@@ -117,7 +154,7 @@
 }
 
 .detailsBody {
-  padding: 34px 0 22px;
+  padding: 34px 0 86px;
 }
 
 .detailsGrid {
@@ -125,6 +162,66 @@
   grid-template-columns: minmax(0, 1fr) 330px;
   gap: 22px;
   align-items: start;
+}
+
+.tabShell {
+  display: grid;
+  gap: 18px;
+}
+
+.tabList {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 8px;
+  box-shadow: var(--shadow-soft);
+  scrollbar-width: thin;
+}
+
+.tabList button {
+  min-height: 40px;
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #4b5563;
+  padding: 0 15px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  outline: none;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.tabList button:focus-visible {
+  border-color: rgba(1, 81, 194, 0.45);
+  box-shadow: 0 0 0 4px var(--blue-soft);
+}
+
+.tabList button:hover {
+  background: #fff;
+  color: #20242b;
+}
+
+.tabList button.activeTab {
+  border-color: rgba(1, 81, 194, 0.2);
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(1, 81, 194, 0.2);
+}
+
+.tabPanel {
+  outline: none;
+}
+
+.tabPanel:focus-visible {
+  border-radius: 14px;
+  box-shadow: 0 0 0 4px var(--blue-soft);
 }
 
 .briefCard,
@@ -166,8 +263,7 @@
 }
 
 .actionPanel {
-  position: sticky;
-  top: 92px;
+  width: min(100%, 520px);
 }
 
 .actionPanel p {
@@ -492,10 +588,11 @@
   }
 
   .actionPanel {
-    position: static;
+    width: 100%;
   }
 
-  .contributorsPanel {
+  .contributorsPanel,
+  .tabList {
     overflow-x: auto;
   }
 
@@ -525,5 +622,15 @@
   .stateCard a,
   .actionPanel a {
     width: 100%;
+  }
+
+  .tabList {
+    margin-right: -18px;
+    border-right: 0;
+    border-radius: 14px 0 0 14px;
+  }
+
+  .tabList button {
+    min-height: 44px;
   }
 }

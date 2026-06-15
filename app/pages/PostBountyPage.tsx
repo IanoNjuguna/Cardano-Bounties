@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
@@ -18,8 +19,10 @@ type BountyForm = {
   customType: string;
   reward_amount: string;
   deadline: string;
-  created_by: string;
+  project_name: string;
+  project_logo_url: string;
   description: string;
+  bounty_instructions: string;
 };
 
 type FieldErrors = Partial<Record<keyof BountyForm, string>>;
@@ -29,6 +32,11 @@ type CreatedBounty = {
   title?: string;
   error?: string;
   retryable?: boolean;
+};
+
+type UploadResponse = {
+  url?: string;
+  error?: string;
 };
 
 const bountyTypes = [
@@ -50,6 +58,11 @@ const MIN_CUSTOM_TYPE_LENGTH = 3;
 const MAX_CUSTOM_TYPE_LENGTH = 80;
 const MIN_DESCRIPTION_LENGTH = 40;
 const MAX_DESCRIPTION_LENGTH = 2000;
+const MIN_INSTRUCTIONS_LENGTH = 20;
+const MAX_INSTRUCTIONS_LENGTH = 2000;
+const MAX_PROJECT_NAME_LENGTH = 120;
+const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_LOGO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
 const adaFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 6,
@@ -61,8 +74,10 @@ const initialForm: BountyForm = {
   customType: "",
   reward_amount: "",
   deadline: "",
-  created_by: "",
+  project_name: "",
+  project_logo_url: "",
   description: "",
+  bounty_instructions: "",
 };
 
 function getBountyType(form: BountyForm) {
@@ -169,6 +184,24 @@ async function recordEscrowWithRetry({
   throw new Error(`${lastError} Transaction hash: ${txHash}`);
 }
 
+async function uploadProjectLogo(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await authFetch("/api/upload/logo", {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = (await response.json()) as UploadResponse;
+
+  if (!response.ok || !data.url) {
+    throw new Error(data.error || "Unable to upload the project image.");
+  }
+
+  return data.url;
+}
+
 function validateForm(form: BountyForm) {
   const errors: FieldErrors = {};
   const reward = Number(form.reward_amount);
@@ -202,6 +235,18 @@ function validateForm(form: BountyForm) {
     errors.description = `Keep the brief under ${MAX_DESCRIPTION_LENGTH} characters.`;
   }
 
+  if (!form.bounty_instructions.trim()) {
+    errors.bounty_instructions = "Add specific bounty instructions.";
+  } else if (form.bounty_instructions.trim().length < MIN_INSTRUCTIONS_LENGTH) {
+    errors.bounty_instructions = `Use at least ${MIN_INSTRUCTIONS_LENGTH} characters for the instructions.`;
+  } else if (form.bounty_instructions.trim().length > MAX_INSTRUCTIONS_LENGTH) {
+    errors.bounty_instructions = `Keep the instructions under ${MAX_INSTRUCTIONS_LENGTH} characters.`;
+  }
+
+  if (form.project_name.trim().length > MAX_PROJECT_NAME_LENGTH) {
+    errors.project_name = `Keep the project name under ${MAX_PROJECT_NAME_LENGTH} characters.`;
+  }
+
   if (!form.reward_amount.trim()) {
     errors.reward_amount = "Add the contributor reward in ADA.";
   } else if (Number.isNaN(reward) || reward <= 0) {
@@ -230,6 +275,8 @@ export function PostBountyPage() {
   const [submitStep, setSubmitStep] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [createdTitle, setCreatedTitle] = useState("");
+  const [projectLogoFile, setProjectLogoFile] = useState<File | null>(null);
+  const [projectLogoName, setProjectLogoName] = useState("");
 
   const todayDateValue = useMemo(() => getTodayDateValue(), []);
   const displayType = getBountyType(form) || "Custom bounty";
@@ -240,6 +287,7 @@ export function PostBountyPage() {
   const totalFundingPreview = amountBreakdown.isValid
     ? `${adaFormatter.format(amountBreakdown.totalFunding)} ADA`
     : "Funding TBD";
+  const projectNamePreview = form.project_name.trim() || "Project name optional";
 
   function updateField(field: keyof BountyForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -249,6 +297,35 @@ export function PostBountyPage() {
       ...(field === "customType" ? { type: undefined } : null),
     }));
     setSubmitError("");
+  }
+
+  function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null;
+    setErrors((current) => ({ ...current, project_logo_url: undefined }));
+    setSubmitError("");
+
+    if (!file) {
+      setProjectLogoFile(null);
+      setProjectLogoName("");
+      return;
+    }
+
+    if (!ALLOWED_LOGO_TYPES.includes(file.type)) {
+      setProjectLogoFile(null);
+      setProjectLogoName("");
+      setErrors((current) => ({ ...current, project_logo_url: "Upload a JPEG, PNG, WebP, or SVG image." }));
+      return;
+    }
+
+    if (file.size > MAX_LOGO_SIZE_BYTES) {
+      setProjectLogoFile(null);
+      setProjectLogoName("");
+      setErrors((current) => ({ ...current, project_logo_url: "Project image must be under 2MB." }));
+      return;
+    }
+
+    setProjectLogoFile(file);
+    setProjectLogoName(file.name);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -290,17 +367,25 @@ export function PostBountyPage() {
       }
 
       const bountyType = getBountyType(form);
+      let projectLogoUrl = form.project_logo_url;
+
+      if (projectLogoFile) {
+        setSubmitStep("Uploading project image...");
+        projectLogoUrl = await uploadProjectLogo(projectLogoFile);
+      }
 
       const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
+        bounty_instructions: form.bounty_instructions.trim(),
         type: form.type,
         custom_type: form.type === "other" ? bountyType : null,
         reward_amount: amountBreakdown.contributorReward,
         platform_fee_amount: amountBreakdown.platformFee,
         total_funding_amount: amountBreakdown.totalFunding,
         deadline: form.deadline || null,
-        created_by: form.created_by.trim() || null,
+        project_name: form.project_name.trim() || null,
+        project_logo_url: projectLogoUrl || null,
       };
 
       setSubmitStep("Creating bounty record...");
@@ -346,6 +431,8 @@ export function PostBountyPage() {
 
       setCreatedTitle(data.title || payload.title);
       setForm(initialForm);
+      setProjectLogoFile(null);
+      setProjectLogoName("");
       toast.success("Bounty funded", "The bounty has been funded and is now awaiting admin review.");
     } catch (error) {
       const message = getErrorMessage(error, "Unable to post this bounty right now.");
@@ -399,6 +486,7 @@ export function PostBountyPage() {
           <aside className={styles.briefPreview} aria-label="Bounty preview">
             <span>Preview</span>
             <h2>{form.title || "Your bounty title"}</h2>
+            <strong className={styles.projectPreviewName}>{projectNamePreview}</strong>
             <p>{form.description || "A concise contributor-facing summary will appear here as you write the brief."}</p>
             <dl>
               <div>
@@ -552,6 +640,46 @@ export function PostBountyPage() {
 
             <div className={styles.splitFields}>
               <div className={styles.fieldGroup}>
+                <label htmlFor="project-name">Project name</label>
+                <input
+                  id="project-name"
+                  type="text"
+                  value={form.project_name}
+                  placeholder="Optional project or team name"
+                  maxLength={MAX_PROJECT_NAME_LENGTH}
+                  onChange={(event) => updateField("project_name", event.target.value)}
+                  aria-invalid={Boolean(errors.project_name)}
+                  aria-describedby={errors.project_name ? "project-name-error" : "project-name-hint"}
+                />
+                {errors.project_name ? <span id="project-name-error">{errors.project_name}</span> : null}
+                {!errors.project_name ? (
+                  <small id="project-name-hint" className={styles.fieldHint}>
+                    {form.project_name.trim().length}/{MAX_PROJECT_NAME_LENGTH} characters
+                  </small>
+                ) : null}
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label htmlFor="project-logo">Project image</label>
+                <input
+                  id="project-logo"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                  onChange={handleLogoChange}
+                  aria-invalid={Boolean(errors.project_logo_url)}
+                  aria-describedby={errors.project_logo_url ? "project-logo-error" : "project-logo-hint"}
+                />
+                {errors.project_logo_url ? <span id="project-logo-error">{errors.project_logo_url}</span> : null}
+                {!errors.project_logo_url ? (
+                  <small id="project-logo-hint" className={styles.fieldHint}>
+                    {projectLogoName || "Optional JPEG, PNG, WebP, or SVG under 2MB."}
+                  </small>
+                ) : null}
+              </div>
+            </div>
+
+            <div className={styles.splitFields}>
+              <div className={styles.fieldGroup}>
                 <label htmlFor="deadline">Deadline</label>
                 <input
                   id="deadline"
@@ -568,18 +696,6 @@ export function PostBountyPage() {
                     Earliest selectable deadline is today.
                   </small>
                 ) : null}
-              </div>
-
-              <div className={styles.fieldGroup}>
-                <label htmlFor="created-by">Project or poster ID</label>
-                <input
-                  id="created-by"
-                  type="text"
-                  value={form.created_by}
-                  placeholder="Optional project or team name"
-                  maxLength={120}
-                  onChange={(event) => updateField("created_by", event.target.value)}
-                />
               </div>
             </div>
 
@@ -600,6 +716,27 @@ export function PostBountyPage() {
               {!errors.description ? (
                 <small id="description-hint" className={styles.fieldHint}>
                   {form.description.trim().length}/{MAX_DESCRIPTION_LENGTH} characters. Include deliverables and acceptance criteria.
+                </small>
+              ) : null}
+            </div>
+
+            <div className={styles.fieldGroup}>
+              <label htmlFor="bounty-instructions">Bounty instructions</label>
+              <textarea
+                id="bounty-instructions"
+                value={form.bounty_instructions}
+                placeholder="Explain how winners are selected, whether rewards go to one or multiple winners, review expectations, and any submission rules."
+                rows={7}
+                minLength={MIN_INSTRUCTIONS_LENGTH}
+                maxLength={MAX_INSTRUCTIONS_LENGTH}
+                onChange={(event) => updateField("bounty_instructions", event.target.value)}
+                aria-invalid={Boolean(errors.bounty_instructions)}
+                aria-describedby={errors.bounty_instructions ? "instructions-error" : "instructions-hint"}
+              />
+              {errors.bounty_instructions ? <span id="instructions-error">{errors.bounty_instructions}</span> : null}
+              {!errors.bounty_instructions ? (
+                <small id="instructions-hint" className={styles.fieldHint}>
+                  {form.bounty_instructions.trim().length}/{MAX_INSTRUCTIONS_LENGTH} characters. Include reward distribution and review rules.
                 </small>
               ) : null}
             </div>
