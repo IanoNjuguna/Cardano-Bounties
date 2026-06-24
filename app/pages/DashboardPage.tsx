@@ -347,13 +347,14 @@ export function DashboardPage() {
         ? [
             {
               label: "Overview",
-              items: [{ href: "/dashboard", label: "Overview", count: 0 }],
+              items: [
+                { href: "/dashboard", label: "Overview", count: 0 },
+                { href: "/dashboard/settings", label: "Profile Settings", count: 0 },
+              ],
             },
             {
               label: "Review",
               items: [
-                { href: "/dashboard/pending", label: "Pending", count: shellCounts.pendingBounties },
-                { href: "/dashboard/submissions", label: "Submissions", count: shellCounts.submissionReviews },
                 { href: "/dashboard/payouts", label: "Payouts", count: shellCounts.payouts },
               ],
             },
@@ -370,7 +371,6 @@ export function DashboardPage() {
               label: "System",
               items: [
                 { href: "/dashboard/treasury", label: "Treasury", count: 0 },
-                { href: "/dashboard/settings", label: "Settings", count: 0 },
               ],
             },
           ]
@@ -382,6 +382,7 @@ export function DashboardPage() {
                 { href: "/post-bounty", label: "Post bounty", count: 0 },
                 { href: "/explore", label: "Explore", count: 0 },
                 { href: "/dashboard/reviews", label: "Reviews", count: shellCounts.posterReviews },
+                { href: "/dashboard/settings", label: "Profile Settings", count: 0 },
               ],
             },
           ],

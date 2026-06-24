@@ -1,15 +1,10 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { WalletConnect } from "@/components/wallet/WalletConnect";
-import { useAppWallet } from "@/components/wallet/WalletProvider";
 import { authFetch } from "@/lib/api";
 import styles from "./DashboardPage.module.css";
 
-type View = "bounties" | "posters" | "hunters" | "payouts" | "disputes";
+type View = "bounties" | "posters" | "hunters" | "payouts" | "disputes" | "treasury";
 
 type Bounty = {
   id: string;
@@ -27,10 +22,8 @@ type Bounty = {
 
 type Submission = {
   id: string;
-  bounty_id?: string | null;
   contributor_id?: string | null;
   status: string;
-  poster_review_status?: string | null;
   submitted_at?: string | null;
   paid_at?: string | null;
   transaction_hash?: string | null;
@@ -83,6 +76,11 @@ const viewTitles: Record<View, { title: string; eyebrow: string; description: st
     title: "Disputes",
     description: "Review open disputes once dispute intake is connected to the platform workflow.",
   },
+  treasury: {
+    eyebrow: "System",
+    title: "Treasury",
+    description: "Monitor committed bounty funds, queued payout value, and refund exposure.",
+  },
 };
 
 const columns: Record<View, string[]> = {
@@ -91,11 +89,12 @@ const columns: Record<View, string[]> = {
   hunters: ["Wallet", "Total submissions", "Accepted", "ADA earned", "Active submissions", "Last active"],
   payouts: ["Hunter wallet", "Bounty title", "ADA amount", "Status", "Tx hash", "Queued at", "Confirmed at"],
   disputes: ["ID", "Bounty", "Raised by", "Reason", "Status", "Opened at"],
+  treasury: ["Metric", "Value", "Status", "Notes"],
 };
 
 function formatAda(value: number | string | null | undefined) {
   const amount = Number(value || 0);
-  return `₳${new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 }).format(amount)}`;
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 }).format(amount)} ADA`;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -124,36 +123,6 @@ function getSubmissionBounty(submission: Submission) {
   if (submission.bounty) return submission.bounty;
   if (Array.isArray(submission.bounties)) return submission.bounties[0];
   return submission.bounties || null;
-}
-
-function getNavGroups(metrics: Record<string, number>) {
-  return [
-    { label: "Overview", items: [{ href: "/dashboard", label: "Overview", count: 0 }] },
-    {
-      label: "Review",
-      items: [
-        { href: "/dashboard/pending", label: "Pending", count: metrics.awaiting_bounty_reviews || 0 },
-        { href: "/dashboard/submissions", label: "Submissions", count: metrics.pending_submissions || 0 },
-        { href: "/dashboard/payouts", label: "Payouts", count: metrics.approved_payouts || 0 },
-      ],
-    },
-    {
-      label: "Manage",
-      items: [
-        { href: "/dashboard/bounties", label: "Bounties", count: 0 },
-        { href: "/dashboard/posters", label: "Posters", count: 0 },
-        { href: "/dashboard/hunters", label: "Hunters", count: 0 },
-        { href: "/dashboard/disputes", label: "Disputes", count: 0 },
-      ],
-    },
-    {
-      label: "System",
-      items: [
-        { href: "/dashboard/treasury", label: "Treasury", count: 0 },
-        { href: "/dashboard/settings", label: "Settings", count: 0 },
-      ],
-    },
-  ];
 }
 
 function buildRows(view: View, data: DashboardResponse | null): TableRow[] {
@@ -242,23 +211,57 @@ function buildRows(view: View, data: DashboardResponse | null): TableRow[] {
     });
   }
 
+  if (view === "treasury") {
+    const openBountyValue = bounties
+      .filter((bounty) => bounty.status === "open")
+      .reduce((sum, bounty) => sum + Number(bounty.reward_amount || 0), 0);
+    const queuedPayoutValue = approvedPayouts.reduce(
+      (sum, submission) => sum + Number(getSubmissionBounty(submission)?.reward_amount || 0),
+      0,
+    );
+    const refundExposure = (data?.queues.refund_candidates || []).reduce(
+      (sum, bounty) => sum + Number(bounty.reward_amount || 0),
+      0,
+    );
+
+    return [
+      {
+        Metric: "Open bounty rewards",
+        Value: formatAda(openBountyValue),
+        Status: "Committed",
+        Notes: "Total reward value across open public bounties.",
+      },
+      {
+        Metric: "Queued payouts",
+        Value: formatAda(queuedPayoutValue),
+        Status: "Needs payment",
+        Notes: "Approved submissions waiting for payout transaction recording.",
+      },
+      {
+        Metric: "Refund exposure",
+        Value: formatAda(refundExposure),
+        Status: "Needs review",
+        Notes: "Rejected, cancelled, or expired funded bounties that may require refund handling.",
+      },
+      {
+        Metric: "Bounties awaiting admin review",
+        Value: String(data?.metrics.awaiting_bounty_reviews || 0),
+        Status: "Operational",
+        Notes: "Funded bounties not yet public.",
+      },
+    ];
+  }
+
   return [];
 }
 
 export function DashboardManagementPage({ view }: { view: View }) {
-  const pathname = usePathname();
-  const { connected, disconnectWallet, isAuthenticated, role, stakeAddress, reauthenticate } = useAppWallet();
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
 
   const loadDashboard = useCallback(async () => {
-    if (!isAuthenticated || role !== "admin") {
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     setError("");
 
@@ -278,28 +281,16 @@ export function DashboardManagementPage({ view }: { view: View }) {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, role]);
+  }, []);
 
   useEffect(() => {
-    const initialTimer = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       void loadDashboard();
     }, 0);
 
-    if (!isAuthenticated || role !== "admin") {
-      return () => window.clearTimeout(initialTimer);
-    }
+    return () => window.clearTimeout(timer);
+  }, [loadDashboard]);
 
-    const timer = window.setInterval(() => {
-      void loadDashboard();
-    }, 120_000);
-
-    return () => {
-      window.clearTimeout(initialTimer);
-      window.clearInterval(timer);
-    };
-  }, [isAuthenticated, loadDashboard, role]);
-
-  const navGroups = useMemo(() => getNavGroups(data?.metrics || {}), [data]);
   const rows = useMemo(() => buildRows(view, data), [data, view]);
   const filteredRows = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -310,142 +301,56 @@ export function DashboardManagementPage({ view }: { view: View }) {
   }, [query, rows]);
   const title = viewTitles[view];
 
-  return (
-    <main className={styles.dashboardShell}>
-      <aside className={styles.sidebar} aria-label="Dashboard navigation">
-        <Link className={styles.brand} href="/">
-          <Image src="/cardano_bounties_logo.png" alt="Cardano Bounties" width={158} height={62} priority />
-        </Link>
-
-        <div className={styles.roleCard}>
-          <span>Admin</span>
-          <strong>Platform operations</strong>
+  if (isLoading) {
+    return (
+      <section className={styles.panel}>
+        <div className={styles.emptyState}>
+          <h2>Loading {title.title.toLowerCase()}</h2>
+          <p>Fetching the latest admin management data.</p>
         </div>
-
-        <nav className={styles.sideNav} aria-label="Dashboard sections">
-          {navGroups.map((group) => (
-            <section className={styles.navGroup} key={group.label}>
-              <span>{group.label}</span>
-              {group.items.map((item) => (
-                <Link
-                  href={item.href}
-                  className={pathname === item.href ? styles.activeNav : undefined}
-                  key={item.href}
-                >
-                  {item.label}
-                  {item.count > 0 ? <b>{item.count}</b> : null}
-                </Link>
-              ))}
-            </section>
-          ))}
-        </nav>
-
-        <div className={styles.walletSlot}>
-          {connected ? (
-            <div className={styles.shellWallet}>
-              <span>Connected wallet</span>
-              <strong>{shortId(stakeAddress)}</strong>
-              <button type="button" onClick={disconnectWallet}>
-                Disconnect
-              </button>
-            </div>
-          ) : (
-            <WalletConnect />
-          )}
-        </div>
-      </aside>
-
-      <section className={styles.dashboardMain}>
-        <header className={styles.topbar}>
-          <div>
-            <span className="pill">{title.eyebrow}</span>
-            <h1>{title.title}</h1>
-            <p>{title.description}</p>
-          </div>
-          <div className={styles.topbarControls} aria-label="Management controls">
-            <label>
-              <span>Search</span>
-              <input
-                type="search"
-                placeholder={`Search ${title.title.toLowerCase()}`}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-            </label>
-            <label>
-              <span>Status</span>
-              <select defaultValue="all">
-                <option value="all">All statuses</option>
-              </select>
-            </label>
-            <label>
-              <span>Page size</span>
-              <select defaultValue="20">
-                <option value="10">10 rows</option>
-                <option value="20">20 rows</option>
-                <option value="50">50 rows</option>
-              </select>
-            </label>
-            <Link href="/dashboard">Workspace</Link>
-          </div>
-        </header>
-
-        {!connected ? (
-          <section className={styles.panel}>
-            <div className={styles.emptyState}>
-              <h2>Connect wallet to view dashboard</h2>
-              <p>Admin management pages require a connected admin wallet.</p>
-              <WalletConnect />
-            </div>
-          </section>
-        ) : !isAuthenticated ? (
-          <section className={styles.panel}>
-            <div className={styles.emptyState}>
-              <h2>Sign wallet verification</h2>
-              <p>Management actions require an authenticated wallet session.</p>
-              <button type="button" onClick={() => void reauthenticate()}>
-                Sign verification
-              </button>
-            </div>
-          </section>
-        ) : role !== "admin" ? (
-          <section className={styles.panel}>
-            <div className={styles.emptyState}>
-              <h2>Admin access required</h2>
-              <p>This management page is only available to admin wallets.</p>
-            </div>
-          </section>
-        ) : isLoading ? (
-          <section className={styles.panel}>
-            <div className={styles.emptyState}>
-              <h2>Loading {title.title.toLowerCase()}</h2>
-              <p>Fetching the latest admin management data.</p>
-            </div>
-          </section>
-        ) : error ? (
-          <section className={styles.panel}>
-            <div className={styles.emptyState}>
-              <h2>Could not load data</h2>
-              <p>{error}</p>
-              <button type="button" onClick={() => void loadDashboard()}>
-                Retry
-              </button>
-            </div>
-          </section>
-        ) : (
-          <section className={styles.managementPanel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <span>{title.eyebrow}</span>
-                <h2>{title.title}</h2>
-              </div>
-              <strong>{filteredRows.length} rows</strong>
-            </div>
-            <ManagementTable columns={columns[view]} rows={filteredRows} view={view} />
-          </section>
-        )}
       </section>
-    </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className={styles.panel}>
+        <div className={styles.emptyState}>
+          <h2>Could not load data</h2>
+          <p>{error}</p>
+          <button type="button" onClick={() => void loadDashboard()}>
+            Retry
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className={styles.managementPanel}>
+      <div className={styles.panelHeader}>
+        <div>
+          <span>{title.eyebrow}</span>
+          <h2>{title.title}</h2>
+          <p>{title.description}</p>
+        </div>
+        <strong>{filteredRows.length} rows</strong>
+      </div>
+
+      <div className={styles.managementToolbar}>
+        <label>
+          <span>Search records</span>
+          <input
+            type="search"
+            placeholder={`Search ${title.title.toLowerCase()}`}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+      </div>
+
+      <ManagementTable columns={columns[view]} rows={filteredRows} view={view} />
+    </section>
   );
 }
 
@@ -479,7 +384,7 @@ function ManagementTable({ columns: tableColumns, rows, view }: { columns: strin
             <tr key={`${view}-${index}`}>
               {tableColumns.map((column) => (
                 <td data-label={column} key={column}>
-                  {row[column] ?? "—"}
+                  {row[column] ?? "-"}
                 </td>
               ))}
               <td data-label="Actions">
@@ -492,4 +397,3 @@ function ManagementTable({ columns: tableColumns, rows, view }: { columns: strin
     </div>
   );
 }
-

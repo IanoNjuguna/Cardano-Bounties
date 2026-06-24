@@ -119,7 +119,7 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
         setIsLoading(true);
         setError("");
 
-        const response = await fetch(`/api/bounties/${bountyId}`, {
+        const response = await authFetch(`/api/bounties/${bountyId}`, {
           headers: { Accept: "application/json" },
           cache: "no-store",
         });
@@ -306,6 +306,19 @@ export function BountyDetailsPage({ bountyId }: { bountyId: string }) {
                   <span>Status</span>
                   <strong>{getDeadlineLabel(bounty.deadline)}</strong>
                 </div>
+                <button
+                  type="button"
+                  className={styles.submitWorkButton}
+                  onClick={() => {
+                    setActiveTab("submit");
+                    const element = document.getElementById("bounty-details-tabs");
+                    if (element) {
+                      element.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
+                >
+                  Submit Work
+                </button>
               </aside>
             </div>
           </section>

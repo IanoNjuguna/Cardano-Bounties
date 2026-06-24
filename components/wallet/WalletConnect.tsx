@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useAppWallet } from "./WalletProvider";
 import styles from "./WalletConnect.module.css";
 
@@ -84,6 +85,9 @@ export function WalletConnect() {
               <span>Authenticated Session</span>
               <strong>{shortenAddress(address)}</strong>
             </div>
+            <Link href="/dashboard/settings" className={styles.menuLink} onClick={() => setIsOpen(false)}>
+              My Profile Settings
+            </Link>
             <button className={styles.disconnectButton} type="button" onClick={disconnectWallet}>
               Disconnect
             </button>

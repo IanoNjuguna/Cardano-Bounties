@@ -1,6 +1,5 @@
-import { DashboardManagementPage } from "@/app/pages/DashboardManagementPage";
+import { AdminOperationQueuePage } from "@/app/pages/AdminOperationQueuePage";
 
 export default function DashboardPayouts() {
-  return <DashboardManagementPage view="payouts" />;
+  return <AdminOperationQueuePage view="payouts" />;
 }
-

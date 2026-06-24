@@ -1,5 +1,6 @@
 import { Header } from "@/components/landing/Header";
 import { Hero } from "@/components/landing/Hero";
+import { PartnersMarquee } from "@/components/landing/PartnersMarquee";
 import { Stats } from "@/components/landing/Stats";
 import { Benefits } from "@/components/landing/Benefits";
 import { Features } from "@/components/landing/Features";
@@ -14,6 +15,7 @@ export default function Home() {
     <main className="page">
       <Header />
       <Hero />
+      <PartnersMarquee />
       <Stats />
       <Benefits />
       <Features />

@@ -132,8 +132,19 @@ export function ExploreBountiesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeType, setActiveType] = useState("all");
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [query]);
 
   const loadBounties = useCallback(async () => {
     try {
@@ -145,7 +156,7 @@ export function ExploreBountiesPage() {
         pageSize: String(PAGE_SIZE),
       });
 
-      if (query.trim()) params.set("search", query.trim());
+      if (debouncedQuery.trim()) params.set("search", debouncedQuery.trim());
       if (activeType !== "all") params.set("type", activeType);
 
       const response = await fetch(`/api/bounties?${params.toString()}`, {
@@ -175,7 +186,7 @@ export function ExploreBountiesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeType, page, query]);
+  }, [activeType, page, debouncedQuery]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -243,12 +254,18 @@ export function ExploreBountiesPage() {
           <div className={styles.exploreToolbar}>
             <label className={styles.searchField}>
               <span>Search bounties</span>
-              <input
-                type="search"
-                value={query}
-                placeholder="Search by title, type, or brief"
-                onChange={(event) => updateSearch(event.target.value)}
-              />
+              <div className={styles.searchInputWrapper}>
+                <svg className={styles.searchIcon} viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input
+                  type="search"
+                  value={query}
+                  placeholder="Search by title, project, type, or brief"
+                  onChange={(event) => updateSearch(event.target.value)}
+                />
+              </div>
             </label>
 
             <div className={styles.filterControls}>

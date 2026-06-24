@@ -39,7 +39,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (search) {
         const escapedSearch = search.replace(/[%_]/g, '\\$&')
         query = query.or(
-            `title.ilike.%${escapedSearch}%,description.ilike.%${escapedSearch}%,type.ilike.%${escapedSearch}%,custom_type.ilike.%${escapedSearch}%`
+            `title.ilike.%${escapedSearch}%,description.ilike.%${escapedSearch}%,type.ilike.%${escapedSearch}%,custom_type.ilike.%${escapedSearch}%,project_name.ilike.%${escapedSearch}%`
         )
     }
 
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     })
 }
 
-export async function  POST(req:NextRequest): Promise<NextResponse> {
+export async function POST(req: NextRequest): Promise<NextResponse> {
     const userId = req.headers.get('x-user-id')
 
     if (!userId) {
@@ -99,7 +99,8 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
 
     const {data, error} = await supabaseAdmin
     .from('bounties')
-    .insert({title,
+    .insert({
+        title,
         description,
         type,
         custom_type,
@@ -112,7 +113,6 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
         project_logo_url,
         bounty_instructions,
         created_by: userId,
-
         status: BOUNTY_STATUS.PendingEscrow
     })
     .select()
@@ -123,5 +123,4 @@ export async function  POST(req:NextRequest): Promise<NextResponse> {
     }
 
     return NextResponse.json(data, { status: 201 })
-    
 }

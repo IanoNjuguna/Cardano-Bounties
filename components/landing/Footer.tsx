@@ -23,7 +23,7 @@ export function Footer() {
           <div>
             <h3>For Projects</h3>
             <a href="#contact">Post a Bounty</a>
-            <a href="#contact">Contact Admin</a>
+            <a href={`mailto:${process.env.NEXT_PUBLIC_ADMIN_EMAIL || "aanuoluwapo.ay@gmail.com"}`}>Contact Admin</a>
           </div>
           <div>
             <h3>Community</h3>
@@ -35,7 +35,6 @@ export function Footer() {
         </div>
         <div className="footer-bottom">
           <p>© 2026 Cardano Bounties. All rights reserved.</p>
-          <p>Cardano Bounties is not affiliated with or endorsed by IOHK, Cardano Foundation, or Emurgo.</p>
           <p>Built with ❤️ by <a href="https://x.com/TechKr_Team" target="_blank" rel="noopener noreferrer">TechKR</a> and <a href="https://gimbalabs.com" target="_blank" rel="noopener noreferrer">Gimbalabs</a>.</p>
         </div>
       </div>

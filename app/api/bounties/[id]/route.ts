@@ -3,10 +3,12 @@ import { BOUNTY_STATUS } from "@/lib/bountyContract";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const userId = req.headers.get("x-user-id");
+  const role = req.headers.get("x-user-role");
 
   const { data, error } = await supabaseAdmin
     .from("bounties")
@@ -28,11 +30,16 @@ export async function GET(
       `,
     )
     .eq("id", id)
-    .eq("status", "open")
     .single();
 
   if (error || !data) {
     return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
+  }
+
+  if (data.status !== "open") {
+    if (!userId || (data.created_by !== userId && role !== "admin")) {
+      return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
+    }
   }
 
   return NextResponse.json(data);

@@ -33,11 +33,30 @@ export function proxy(req: NextRequest) {
 
     const isAdmin = adminRoutes.some(route => pathname.startsWith(route))
 
-    if (!isProtected) return NextResponse.next()
-    
-    // Get token from Authorization header
     const authHeader = req.headers.get('authorization')
     const token = authHeader?.split(' ')[1] // "Bearer <token>"
+
+    if (!isProtected) {
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET) as {
+                    userId: string
+                    address: string
+                    role: string
+                }
+                const requestHeaders = new Headers(req.headers)
+                requestHeaders.set('x-user-id', decoded.userId)
+                requestHeaders.set('x-user-role', decoded.role)
+                requestHeaders.set('x-user-address', decoded.address)
+                return NextResponse.next({ request: { headers: requestHeaders }})
+            } catch {
+                // Invalid token on public route: proceed without auth headers
+            }
+        }
+        return NextResponse.next()
+    }
+    
+    // Get token from Authorization header
 
     if (!token) {
         return NextResponse.json({error: 'Unauthorized'}, {status: 401})

@@ -228,6 +228,25 @@
   50%       { opacity: 0.35; transform: scale(0.7); }
 }
 
+.menuLink {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 10px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  transition: opacity 160ms ease;
+}
+
+.menuLink:hover {
+  opacity: 0.85;
+}
+
 @media (max-width: 560px) {
   .walletRoot {
     width: 100%;

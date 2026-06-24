@@ -1,0 +1,116 @@
+.marqueeSection {
+  padding: 48px 0;
+  background: var(--section);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.marqueeTitle {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 28px;
+}
+
+.marqueeWrapper {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  mask-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 15%,
+    rgba(0, 0, 0, 1) 85%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 15%,
+    rgba(0, 0, 0, 1) 85%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.marqueeTrack {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  width: max-content;
+  animation: scrollMarquee 30s linear infinite;
+}
+
+.marqueeTrack:hover {
+  animation-play-state: paused;
+}
+
+.partnerLogo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 180px;
+  flex-shrink: 0;
+  transition: transform 200ms ease;
+}
+
+.partnerLogo:hover {
+  transform: translateY(-2px);
+}
+
+.logoContainer {
+  height: 60px;
+  width: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: var(--shadow-soft);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.partnerLogo:hover .logoContainer {
+  border-color: rgba(1, 81, 194, 0.35);
+  box-shadow: 0 10px 25px rgba(18, 22, 28, 0.08);
+}
+
+.logoImg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: grayscale(10%) contrast(90%);
+  transition: filter 200ms ease;
+}
+
+.partnerLogo:hover .logoImg {
+  filter: grayscale(0%) contrast(100%);
+}
+
+.partnerName {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--muted);
+  transition: color 200ms ease;
+}
+
+.partnerLogo:hover .partnerName {
+  color: var(--ink);
+}
+
+@keyframes scrollMarquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - 20px));
+  }
+}

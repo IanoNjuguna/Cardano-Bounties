@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChangeEvent, FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
@@ -277,6 +277,36 @@ export function PostBountyPage() {
   const [createdTitle, setCreatedTitle] = useState("");
   const [projectLogoFile, setProjectLogoFile] = useState<File | null>(null);
   const [projectLogoName, setProjectLogoName] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isDraftSaved, setIsDraftSaved] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cb_bounty_draft");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setForm((current) => ({ ...current, ...parsed }));
+      } catch (err) {
+        console.error("Failed to parse saved draft", err);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (JSON.stringify(form) === JSON.stringify(initialForm)) return;
+
+    const timer = setTimeout(() => {
+      localStorage.setItem("cb_bounty_draft", JSON.stringify(form));
+      setIsDraftSaved(true);
+      
+      const statusTimer = setTimeout(() => {
+        setIsDraftSaved(false);
+      }, 3000);
+      return () => clearTimeout(statusTimer);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [form]);
 
   const todayDateValue = useMemo(() => getTodayDateValue(), []);
   const displayType = getBountyType(form) || "Custom bounty";
@@ -352,6 +382,14 @@ export function PostBountyPage() {
       return;
     }
 
+    setShowConfirmModal(true);
+  }
+
+  async function executeSubmit() {
+    if (!wallet || !ESCROW_ADDRESS) {
+      setSubmitError("Wallet not connected or escrow address is missing.");
+      return;
+    }
     setIsSubmitting(true);
     setSubmitStep("Preparing bounty...");
     setSubmitError("");
@@ -433,6 +471,7 @@ export function PostBountyPage() {
       setForm(initialForm);
       setProjectLogoFile(null);
       setProjectLogoName("");
+      localStorage.removeItem("cb_bounty_draft");
       toast.success("Bounty funded", "The bounty has been funded and is now awaiting admin review.");
     } catch (error) {
       const message = getErrorMessage(error, "Unable to post this bounty right now.");
@@ -743,9 +782,15 @@ export function PostBountyPage() {
 
             <div className={styles.formActions}>
               <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? submitStep || "Posting bounty..." : "Post bounty"}
+                Post bounty
               </button>
               <Link href="/explore">View bounties</Link>
+              {isDraftSaved && (
+                <div className={styles.draftStatus}>
+                  <span className={styles.draftStatusDot} />
+                  <span>Draft saved</span>
+                </div>
+              )}
             </div>
           </form>
 
@@ -765,6 +810,68 @@ export function PostBountyPage() {
           </aside>
         </div>
       </section>
+
+      {showConfirmModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3>Confirm Bounty Funding</h3>
+            <p>You are about to post a new bounty and initiate an on-chain escrow transaction.</p>
+            
+            <div className={styles.modalBreakdown}>
+              <div className={styles.modalBreakdownRow}>
+                <span>Contributor Reward</span>
+                <strong>{amountBreakdown.isValid ? adaFormatter.format(amountBreakdown.contributorReward) : "0"} ADA</strong>
+              </div>
+              <div className={styles.modalBreakdownRow}>
+                <span>Platform Fee (10%)</span>
+                <strong>{amountBreakdown.isValid ? adaFormatter.format(amountBreakdown.platformFee) : "0"} ADA</strong>
+              </div>
+              <hr className={styles.modalDivider} />
+              <div className={styles.modalBreakdownRow} data-total="true">
+                <span>Total Escrow Funding</span>
+                <strong>{amountBreakdown.isValid ? adaFormatter.format(amountBreakdown.totalFunding) : "0"} ADA</strong>
+              </div>
+            </div>
+
+            <p className={styles.modalWarning}>
+              Please make sure your Cardano wallet is connected and has sufficient funds to cover the total amount plus transaction fees.
+            </p>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalCancelButton}
+                onClick={() => setShowConfirmModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.modalConfirmButton}
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  void executeSubmit();
+                }}
+              >
+                Confirm & Fund
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isSubmitting && (
+        <div className={styles.modalOverlay}>
+          <div className={`${styles.modalContent} ${styles.processingContent}`}>
+            <div className={styles.spinner} />
+            <h3>Processing On-Chain Escrow</h3>
+            <p className={styles.stepMessage}>{submitStep}</p>
+            <p className={styles.processingNote}>
+              Do not close this tab or disconnect your wallet. On-chain validation can take up to a minute.
+            </p>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </main>
