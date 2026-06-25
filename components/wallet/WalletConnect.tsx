@@ -143,10 +143,11 @@ export function WalletConnect() {
         className={styles.connectButton}
         type="button"
         onClick={() => {
-          setIsOpen((current) => {
-            if (!current) void loadWallets();
-            return !current;
-          });
+          const nextOpen = !isOpen;
+          setIsOpen(nextOpen);
+          if (nextOpen) {
+            void loadWallets();
+          }
           setLocalError("");
         }}
         aria-expanded={isOpen}

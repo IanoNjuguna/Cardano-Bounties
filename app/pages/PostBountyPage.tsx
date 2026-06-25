@@ -285,7 +285,9 @@ export function PostBountyPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setForm((current) => ({ ...current, ...parsed }));
+        setTimeout(() => {
+          setForm((current) => ({ ...current, ...parsed }));
+        }, 0);
       } catch (err) {
         console.error("Failed to parse saved draft", err);
       }

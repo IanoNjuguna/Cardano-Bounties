@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import * as jwt from "jsonwebtoken";
+import { checkSignature } from "@meshsdk/core";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -34,8 +35,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { checkSignature } = await import('@meshsdk/core')
-
   const isValid = checkSignature(user.nonce, signature, address)
 
   if (!isValid) {
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   //   Issue a JWT valid for 7 days
   const token = jwt.sign(
-    { userId: user.id, address, role: user.role || "contributor" },
+    { userId: user.id, address, role: user.role || "user" },
     JWT_SECRET,
     { expiresIn: "7d" },
   );
