@@ -11,6 +11,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@blockfrost/blockfrost-js": "^6.1.1",
     "@hookform/resolvers": "^5.4.0",
     "@meshsdk/core": "^1.7.9",
     "@meshsdk/react": "^1.8.14",
