@@ -1,98 +1,133 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SUBMISSION_STATUS } from "@/lib/bountyContract";
 import { supabaseAdmin } from "@/lib/supabase";
-
+import { createNotification } from "@/lib/notifications";
 
 export async function GET(
-    req: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-    const { id } = await params
-    const userId = req.headers.get('x-user-id')
-    const userRole = req.headers.get('x-user-role')
+  const { id } = await params;
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role");
 
-    if (!userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    const { data, error } = await supabaseAdmin
-    .from('submissions')
-    .select(`
+  const { data, error } = await supabaseAdmin
+    .from("submissions")
+    .select(
+      `
         *,
         bounties (id, title, reward_amount ),
         users ( id, stake_address, display_name )
-        `)
-        .eq('id', id)
-        .single()
+        `,
+    )
+    .eq("id", id)
+    .single();
 
-        if (error || !data) {
-            return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
-        }
+  if (error || !data) {
+    return NextResponse.json(
+      { error: "Submission not found" },
+      { status: 404 },
+    );
+  }
 
-        // Contributors can only view their own submissions
-        // Admins can view any submission
-        if (userRole !== 'admin' && data.Contributor_id !== userId) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-        }
+  // Contributors can only view their own submissions
+  // Admins can view any submission
+  if (userRole !== "admin" && data.Contributor_id !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-        return NextResponse.json(data)
+  return NextResponse.json(data);
 }
 
 // PATCH
 export async function PATCH(
-    req: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
-) {
-    const { id } = await params
-    const role = req.headers.get('x-user-role')
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  const { id } = await params;
+  const role = req.headers.get("x-user-role");
 
-    if (role !== 'admin') {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+  if (role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-    const body = await req.json()
-    const { status, feedback } = body
+  const body = await req.json();
+  const { status, feedback } = body;
 
-    if (!status || ![SUBMISSION_STATUS.Approved, SUBMISSION_STATUS.Rejected].includes(status)) {
-        return NextResponse.json(
-            { error: 'status must be approved or rejected' },
-            { status: 400 }
-        )
-    }
+  if (
+    !status ||
+    ![SUBMISSION_STATUS.Approved, SUBMISSION_STATUS.Rejected].includes(status)
+  ) {
+    return NextResponse.json(
+      { error: "status must be approved or rejected" },
+      { status: 400 },
+    );
+  }
 
-    const { data: submission, error: fetchError } = await supabaseAdmin
-    .from('submissions')
-    .select('id, status')
-    .eq('id', id)
-    .single()
+  const { data: submission, error: fetchError } = await supabaseAdmin
+    .from("submissions")
+    .select("id, status")
+    .eq("id", id)
+    .single();
 
-    if (fetchError || !submission) {
-        return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
-    }
+  if (fetchError || !submission) {
+    return NextResponse.json(
+      { error: "Submission not found" },
+      { status: 404 },
+    );
+  }
 
-    if (submission.status !== SUBMISSION_STATUS.Pending) {
-        return NextResponse.json(
-            { error: 'Only pending submissions can be reviewed' },
-            { status: 400 }
-        )
-    }
+  if (submission.status !== SUBMISSION_STATUS.Pending) {
+    return NextResponse.json(
+      { error: "Only pending submissions can be reviewed" },
+      { status: 400 },
+    );
+  }
 
-    const { data, error } = await supabaseAdmin
-    .from('submissions')
+  const { data, error } = await supabaseAdmin
+    .from("submissions")
     .update({
-        status,
-        feedback: typeof feedback === 'string' ? feedback.trim() || null : null,
-        reviewed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-    }).eq('id', id).select().single()
+      status,
+      feedback: typeof feedback === "string" ? feedback.trim() || null : null,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select("*, bounties(title)")
+    .single();
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-    if (!data) {
-        return NextResponse.json({ error: 'Submission not found' }, { status: 400 })
-    }
+  if (!data) {
+    return NextResponse.json(
+      { error: "Submission not found" },
+      { status: 400 },
+    );
+  }
 
-    return NextResponse.json(data)
+  // Notify the contributor of the review outcome
+  await createNotification({
+    userId: data.contributor_id,
+    type:
+      status === SUBMISSION_STATUS.Approved
+        ? "submission_approved"
+        : "submission_rejected",
+    title:
+      status === SUBMISSION_STATUS.Approved
+        ? "Submission Approved! 🎉"
+        : "Submission Update",
+    message:
+      status === SUBMISSION_STATUS.Approved
+        ? `Your submission for "${data.bounties?.title}" was approved.`
+        : `Your submission for "${data.bounties?.title}" was rejected.${data.feedback ? ` Feedback: ${data.feedback}` : ""}`,
+    relatedId: data.bounty_id,
+  });
+
+  return NextResponse.json(data);
 }
