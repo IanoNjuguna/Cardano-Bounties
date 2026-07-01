@@ -3,6 +3,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -267,6 +268,7 @@ function validateForm(form: BountyForm) {
 }
 
 export function PostBountyPage() {
+  const router = useRouter();
   const { wallet, connected, isAuthenticated, reauthenticate } = useAppWallet();
   const toast = useToast();
   const [form, setForm] = useState<BountyForm>(initialForm);
@@ -475,6 +477,7 @@ export function PostBountyPage() {
       setProjectLogoName("");
       localStorage.removeItem("cb_bounty_draft");
       toast.success("Bounty funded", "The bounty has been funded and is now awaiting admin review.");
+      router.push("/dashboard");
     } catch (error) {
       const message = getErrorMessage(error, "Unable to post this bounty right now.");
 
