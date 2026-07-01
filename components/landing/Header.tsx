@@ -2,6 +2,7 @@
 import Link from "next/link";
 import React, { useState } from "react";
 import { WalletConnect } from "@/components/wallet/WalletConnect";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { navItems } from "./constants";
 
 export function Header() {
@@ -49,7 +50,8 @@ export function Header() {
           ))}
         </div>
 
-        <div className="nav-wallet">
+        <div className="nav-wallet" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <NotificationBell />
           <WalletConnect />
         </div>
       </nav>

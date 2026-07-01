@@ -25,6 +25,14 @@
   --shadow-card: 0 14px 36px rgba(18, 22, 28, 0.055);
   --shadow-soft: 0 8px 22px rgba(18, 22, 28, 0.045);
   --container: min(1120px, calc(100% - 48px));
+
+  /* Status pills */
+  --status-warning-bg: #fffbeb;
+  --status-warning-text: #b45309;
+  --status-success-bg: #f0fdf4;
+  --status-success-text: #15803d;
+  --status-danger-bg: #fef2f2;
+  --status-danger-text: #b91c1c;
 }
 
 html {
