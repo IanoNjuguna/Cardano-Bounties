@@ -24,6 +24,25 @@ async function attachPosterProfiles<T extends { created_by?: string | null }>(bo
   }));
 }
 
+async function attachContributorProfiles<T extends { contributor_id?: string | null }>(submissions: T[]) {
+  const contributorIds = [...new Set(submissions.map((submission) => submission.contributor_id).filter(Boolean))] as string[];
+
+  if (contributorIds.length === 0) return submissions;
+
+  const { data: users } = await supabaseAdmin
+    .from("users")
+    .select("id, stake_address, display_name, role, created_at")
+    .in("id", contributorIds);
+
+  const usersById = new Map((users || []).map((user) => [user.id, user]));
+
+  return submissions.map((submission) => ({
+    ...submission,
+    contributor: submission.contributor_id ? usersById.get(submission.contributor_id) || null : null,
+  }));
+}
+
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const role = req.headers.get("x-user-role");
 
@@ -98,7 +117,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   const bounties = await attachPosterProfiles(bountiesResult.data || []);
-  const submissions = submissionsResult.data || [];
+  const submissions = await attachContributorProfiles(submissionsResult.data || []);
   const awaitingBounties = bounties.filter((bounty) => bounty.status === BOUNTY_STATUS.AwaitingAdminReview);
   const pendingEscrowBounties = bounties.filter((bounty) => bounty.status === BOUNTY_STATUS.PendingEscrow);
   const nonLiveBounties = bounties.filter((bounty) =>

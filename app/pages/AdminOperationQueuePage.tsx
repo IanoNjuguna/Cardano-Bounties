@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useAppWallet } from "@/components/wallet/WalletProvider";
 import { authFetch } from "@/lib/api";
+import { adaToLovelace } from "@/lib/cardano/amounts";
+import { releaseBountyPayout } from "@/lib/cardano/transactions/bountyEscrow";
 import styles from "./DashboardPage.module.css";
 
 type OperationView = "approvals" | "submissions" | "payouts" | "refunds";
@@ -40,6 +43,7 @@ type Submission = {
   poster_feedback?: string | null;
   submitted_at?: string | null;
   transaction_hash?: string | null;
+  contributor?: UserProfile | null;
   bounties?: Bounty | Bounty[] | null;
   bounty?: Bounty;
 };
@@ -312,7 +316,70 @@ function OperationDetail({
   txHash: string;
   view: OperationView;
 }) {
+  const toast = useToast();
+  const { wallet, connected } = useAppWallet();
+  const [isExecutingOnChain, setIsExecutingOnChain] = useState(false);
+
   const bounty = item.kind === "bounty" ? item.bounty : getSubmissionBounty(item.submission);
+
+  async function handleExecuteOnChainPayout() {
+    if (!connected || !wallet) {
+      toast.error("Wallet disconnected", "Please connect your admin Cardano wallet to release funds on-chain.");
+      return;
+    }
+
+    if (item.kind !== "submission") return;
+
+    let targetPaymentAddress: string = item.submission.contributor?.stake_address || "";
+    if (!targetPaymentAddress) {
+      toast.error("Missing recipient address", "Contributor address not found for this submission.");
+      return;
+    }
+
+    const rewardAda = bounty?.reward_amount;
+    if (!rewardAda || Number(rewardAda) <= 0) {
+      toast.error("Invalid payout amount", "Bounty reward amount must be greater than 0 ADA.");
+      return;
+    }
+
+    setIsExecutingOnChain(true);
+    try {
+      if (targetPaymentAddress.startsWith("stake")) {
+        toast.info("Resolving address", "Resolving contributor payment address from stake key...");
+        const res = await authFetch(`/api/users/resolve-address?stake=${encodeURIComponent(targetPaymentAddress)}`);
+        const resData = await res.json();
+        if (!res.ok || !resData.payment_address) {
+          throw new Error(resData.error || "Failed to resolve contributor payment address via Blockfrost.");
+        }
+        targetPaymentAddress = resData.payment_address;
+      }
+
+      toast.info("Signing transaction", "Please sign the payout transaction in your wallet.");
+      const lovelace = adaToLovelace(rewardAda);
+      const submittedTxHash = await releaseBountyPayout({
+        wallet,
+        recipientAddress: targetPaymentAddress,
+        lovelace,
+      });
+
+      setTxHash(submittedTxHash);
+      toast.success("Transaction submitted", `On-chain payout hash: ${shortId(submittedTxHash)}`);
+
+      await runAction(
+        `${item.id}:payout`,
+        () =>
+          authFetch("/api/admin/release-payment", {
+            method: "POST",
+            body: JSON.stringify({ submission_id: item.submission.id, transaction_hash: submittedTxHash }),
+          }),
+        "On-chain payout completed and recorded.",
+      );
+    } catch (err) {
+      toast.error("Payout release failed", err instanceof Error ? err.message : "Unable to execute on-chain payout.");
+    } finally {
+      setIsExecutingOnChain(false);
+    }
+  }
 
   return (
     <div className={styles.detailStack}>
@@ -341,6 +408,18 @@ function OperationDetail({
         <section className={styles.noticeSection}>
           <span>Poster review</span>
           <p>{item.submission.poster_feedback || normalizeStatus(item.submission.poster_review_status)}</p>
+        </section>
+      ) : null}
+
+      {view === "payouts" && item.kind === "submission" ? (
+        <section className={styles.noticeSection}>
+          <span>Contributor payout details</span>
+          <p>
+            <strong>Recipient Address:</strong> {item.submission.contributor?.stake_address || "Address not recorded"}
+          </p>
+          {item.submission.contributor?.display_name ? (
+            <p><strong>Contributor Name:</strong> {item.submission.contributor.display_name}</p>
+          ) : null}
         </section>
       ) : null}
 
@@ -452,10 +531,16 @@ function OperationDetail({
         {view === "payouts" && item.kind === "submission" ? (
           <>
             <button type="button">Hold</button>
-            <button type="button">Open bounty</button>
             <button
               type="button"
-              disabled={actionId === `${item.id}:payout`}
+              disabled={isExecutingOnChain || actionId === `${item.id}:payout`}
+              onClick={() => void handleExecuteOnChainPayout()}
+            >
+              {isExecutingOnChain ? "Executing On-Chain..." : "Release Payment On-Chain"}
+            </button>
+            <button
+              type="button"
+              disabled={isExecutingOnChain || actionId === `${item.id}:payout`}
               onClick={() =>
                 void runAction(
                   `${item.id}:payout`,
@@ -468,7 +553,7 @@ function OperationDetail({
                 )
               }
             >
-              Record payout
+              Record manual payout
             </button>
           </>
         ) : null}
