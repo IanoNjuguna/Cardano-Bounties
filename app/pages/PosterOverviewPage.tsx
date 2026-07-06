@@ -219,7 +219,6 @@ export function PosterOverviewPage() {
           <article className={styles.metricCard} key={label}>
             <span>{label}</span>
             <strong>{value}</strong>
-            <p>Live from Supabase</p>
           </article>
         ))}
       </section>
