@@ -2,76 +2,22 @@ import React from "react";
 import { features } from "./constants";
 
 function FeatureMock({ type }: { type: string }) {
+  if (type === "tasks") {
+    return <img src="/smart_contract.jpg" alt="Code & Smart Contracts" className="feature-image" />;
+  }
   if (type === "time") {
-    return (
-      <div className="time-visual">
-        <div className="timer-card">
-          <b>UI/UX Review Audit</b>
-          <span>Protocol Landing Page</span>
-          <button>Review Assets</button>
-        </div>
-        <div className="meeting-card">
-          <b>Design System Sync</b>
-          <span>Sprint 14 Review</span>
-          <nav><i>Assets</i><i>Colors</i><i>Feedback</i></nav>
-          {["Alex Chen", "Sarah Miller", "David Kim"].map((name, index) => (
-            <div key={name}>
-              <p>{name}</p>
-              <em>{["Reviewed", "In Review", "Draft"][index]}</em>
-            </div>
-          ))}
-          <small>Open Figma File</small>
-        </div>
-      </div>
-    );
+    return <img src="/design_uiux.jpg" alt="Design & UI/UX" className="feature-image" />;
   }
-
   if (type === "integrations") {
-    return (
-      <div className="integration-visual">
-        <span className="logo microsoft" title="Guides">{"\u270e"}</span>
-        <span className="logo drive" title="Docs">{"\u25a4"}</span>
-        <span className="logo figma" title="Technical">{"\u270d"}</span>
-        <span className="logo vimeo" title="Video">v</span>
-        <span className="logo slack" title="Support">?</span>
-        <i className="line line-a" />
-        <i className="line line-b" />
-        <i className="line line-c" />
-      </div>
-    );
+    return <img src="/documentation.jpg" alt="Content & Documentation" className="feature-image" />;
   }
-
   if (type === "collaboration") {
-    return (
-      <div className="collab-visual">
-        <i className="arc arc-one" />
-        <i className="arc arc-two" />
-        <span className="person person-one" />
-        <span className="person person-two" />
-        <span className="person person-three" />
-      </div>
-    );
+    return <img src="/community_research.jpg" alt="Community & Research" className="feature-image" />;
   }
-
-  return (
-    <div className="task-visual">
-      <div className="candidate-card card-main">
-        <span style={{ color: "var(--blue)" }}>{"\u27e8\u27e9"}</span>
-        <small>Smart Contract</small>
-        <b>Plutus V3</b>
-        <h4>Contract Security Audit</h4>
-        <p>Expert <i>Audit report needed</i></p>
-        <em>2,500 - 5,000 ADA</em>
-        <button>Claim Bounty</button>
-      </div>
-      <div className="candidate-card card-back">
-        <span style={{ color: "#111" }}>{"\u27e8\u27e9"}</span>
-        <b>Cardano SDK</b>
-        <h4>Wallet Integration</h4>
-        <button>View Details</button>
-      </div>
-    </div>
-  );
+  if (type === "hackathons") {
+    return <img src="/hackathons.jpg" alt="Hackathons & Events" className="feature-image" />;
+  }
+  return null;
 }
 
 function FeatureCopy({ title, text }: { title: string; text: string }) {

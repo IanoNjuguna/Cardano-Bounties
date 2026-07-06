@@ -1,0 +1,144 @@
+.posterBountyGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.posterBountyCard {
+  min-height: 202px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.88), rgba(255, 255, 255, 0.98)),
+    #fff;
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.posterBountyCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(1, 81, 194, 0.18);
+  box-shadow: var(--shadow-card);
+}
+
+.posterBountyCard.isFeatured {
+  border-color: rgba(1, 81, 194, 0.18);
+  background:
+    radial-gradient(circle at 88% 14%, rgba(1, 81, 194, 0.1), transparent 34%),
+    linear-gradient(180deg, #fff, #fbfdff);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+}
+
+.posterCardHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.posterCardHead > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.isFeatured .posterCardHead > span {
+  background: var(--blue);
+  color: #fff;
+}
+
+.posterCardHead p {
+  color: #8d94a0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.posterCardHead b {
+  display: block;
+  color: #20242b;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.isFeatured .posterCardHead p,
+.isFeatured > p {
+  color: #5f6671;
+}
+
+.isFeatured .posterCardHead b {
+  color: #20242b;
+}
+
+.posterBountyCard > p {
+  margin-top: 20px;
+  color: #5f6671;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.posterCardMeta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.posterCardMeta span {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 0 9px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.isFeatured .posterCardMeta span {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.posterBountyCta {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  min-height: 43px;
+  margin: 38px auto 0;
+  border-radius: 4px;
+  background: var(--blue);
+  color: white;
+  padding: 0 23px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 14px 30px rgba(1, 81, 194, 0.22);
+}
+
+@media (max-width: 1024px) {
+  .posterBountyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .posterBountyGrid {
+    grid-template-columns: 1fr;
+  }
+}

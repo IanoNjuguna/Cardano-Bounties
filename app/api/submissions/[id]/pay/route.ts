@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import { BOUNTY_STATUS, SUBMISSION_STATUS } from "@/lib/bountyContract";
 
 export async function PATCH(
     req: NextRequest,
@@ -14,11 +15,19 @@ export async function PATCH(
 
     const body = await req.json()
     const { transaction_hash } = body
+    const payoutTxHash = typeof transaction_hash === 'string' ? transaction_hash.trim() : ''
+
+    if (!/^[0-9a-f]{64}$/i.test(payoutTxHash)) {
+        return NextResponse.json(
+            { error: 'transaction_hash must be a 64 character hex transaction id' },
+            { status: 400 }
+        )
+    }
 
     // Check if submission exists and is approved
     const { data: submission, error: fetchError } = await supabaseAdmin
     .from('submissions')
-    .select('id, status')
+    .select('id, status, bounty_id')
     .eq('id', id)
     .single()
 
@@ -26,7 +35,7 @@ export async function PATCH(
         return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
     }
 
-    if (submission.status !== 'approved') {
+    if (submission.status !== SUBMISSION_STATUS.Approved) {
         return NextResponse.json(
             { error: 'Submission must be approved before marking as paid' },
             { status: 400 }
@@ -36,9 +45,10 @@ export async function PATCH(
     const { data, error } = await supabaseAdmin
     .from('submissions')
     .update({
-        status: 'paid',
+        status: SUBMISSION_STATUS.Paid,
         paid_at: new Date().toISOString(),
-        transaction_hash: transaction_hash || null
+        transaction_hash: payoutTxHash,
+        updated_at: new Date().toISOString()
     })
     .eq('id', id)
     .select()
@@ -47,6 +57,22 @@ export async function PATCH(
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    await supabaseAdmin
+    .from('submissions')
+    .update({ status: SUBMISSION_STATUS.Closed, updated_at: new Date().toISOString() })
+    .eq('bounty_id', submission.bounty_id)
+    .neq('id', id)
+    .eq('status', SUBMISSION_STATUS.Pending)
+
+    await supabaseAdmin
+    .from('bounties')
+    .update({
+        status: BOUNTY_STATUS.Completed,
+        payout_tx_hash: payoutTxHash,
+        updated_at: new Date().toISOString()
+    })
+    .eq('id', submission.bounty_id)
 
     return NextResponse.json(data)
 }
