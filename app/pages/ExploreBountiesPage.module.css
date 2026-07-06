@@ -308,6 +308,8 @@
   font-size: 19px;
   font-weight: 600;
   line-height: 1.25;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .bountyCard p {
@@ -319,6 +321,8 @@
   line-height: 1.75;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .bountyMeta {
@@ -341,6 +345,8 @@
   font-family: var(--font-outfit), "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   font-weight: 650;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .bountyAction {

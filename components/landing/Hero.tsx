@@ -72,6 +72,8 @@ export function Hero() {
 
   return (
     <section className="hero-section">
+      <div className="hero-glow hero-glow-1"></div>
+      <div className="hero-glow hero-glow-2"></div>
       <div className="container hero-inner">
         <span className="eyebrow"><i /> Built on Cardano · Pre-launch</span>
         <h1>
