@@ -1,129 +1,77 @@
 # Cardano Bounties
 
-**An open, on-chain bounty platform connecting Cardano projects with contributors — built in public, funded in ADA.**
+An open, on-chain bounty platform connecting Cardano projects with contributors: built in public, funded in ADA.
 
-Cardano Bounties is a decentralized-first task marketplace for the Cardano ecosystem. Projects and teams post scoped work items (bounties) with ADA rewards; developers, designers, writers, and community contributors can explore, claim, and submit work — all verified through Cardano wallet authentication, with no platform account required.
+Cardano Bounties is a decentralized task marketplace for the Cardano ecosystem. Projects and teams post scoped work items (bounties) with ADA rewards; developers, designers, writers, and community contributors can explore, claim, and submit work, all verified through Cardano wallet authentication with no platform account required.
 
 ---
 
 ## ✨ Overview
 
-The Cardano ecosystem is growing fast, but it lacks a structured, accessible way for community members to contribute and get paid for their work. Cardano Bounties bridges that gap by providing:
+The Cardano ecosystem is growing fast, and community members need a structured, accessible way to contribute and get paid for their work. Cardano Bounties bridges this gap by providing:
 
-- **For Projects:** A lightweight dashboard to post bounties, track applicants, and manage ADA reward payouts.
-- **For Contributors:** A public board of open tasks across development, design, content, and community categories — browsable and submittable with just a Cardano wallet.
-- **For the Ecosystem:** Transparent, on-chain accountability for contribution work, building a verifiable contributor reputation over time.
+- **For Projects & Contributors:** A shared, lightweight dashboard (Project Workspace) to post bounties, track submissions, and manage user settings.
+- **For Admins:** An operations panel to review pending bounty approvals, verify final submissions, and manage payouts and refunds.
+- **For the Ecosystem:** Transparent accountability for contribution work, building a verifiable contributor reputation over time.
 
 ---
 
 ## 🚀 Features
 
-### 🌐 Public Landing Page
+### Public Landing Page
 - Animated hero section with a live preview of open bounties.
-- Metrics summary (total ADA rewarded, open bounties, active contributors).
-- "How It Works" section explaining the 3-step contribution flow.
-- Benefits section highlighting the platform's value proposition.
-- Frequently Asked Questions accordion.
-- Waitlist form for early access sign-up via email.
-- Footer with platform links and community channels.
+- Metrics summary including total ADA rewarded, open bounties, and active contributors.
+- A step-by-step contribution flow explanation.
+- Waitlist form for early access sign-up.
 
-### 🔍 Explore Bounties
+### Explore Bounties
 - Real-time bounty grid with search and category filters.
 - Paginated results with skeleton loading states.
 - Per-bounty summary cards showing project identity, reward, deadline, and type.
-- Fully responsive across mobile, tablet, and desktop.
+- Responsive layout across mobile, tablet, and desktop.
 
-### 📋 Bounty Details Page
-- Tabbed interface: **Brief**, **Instructions**, **Contributions**, **Submit Work**, **Details**.
-- Sidebar summary card showing reward amount, deadline, and status.
-- Contribution submission form (link + reviewer notes), gated behind wallet authentication.
-- Live contributor table showing all submissions and their review status.
-- Smooth "Submit Work" anchor scroll from the hero panel.
+### Bounty Details Page
+- Detailed breakdown of requirements and instructions.
+- Contribution submission form, gated behind wallet authentication.
+- Live contributor table showing submissions and their review status.
 
-### 🔐 Wallet Authentication
-- Native Cardano wallet connection via **MeshSDK** (no username/password required).
-- Challenge-response authentication: the backend issues a nonce, the user signs it with their wallet, and the server verifies the signature.
-- JWT-based session token stored in `sessionStorage` for stateless auth on all protected API calls.
-- Supports all major Cardano wallets (Eternl, Nami, Vespr, Flint, etc.).
+### Wallet Authentication
+- Native Cardano wallet connection (no username/password required).
+- Challenge-response verification: secure cryptographic signing to establish identity.
+- Stateless authentication on protected API calls.
+- Supports major Cardano wallets like Eternl, Nami, Vespr, and Flint.
 
-### 📊 Poster Dashboard
-- Overview page with key metrics: total bounties posted, open/closed counts, total reward spend.
-- Bounty management table with status filtering and quick-action controls.
-- Bounty creation form with project name, description, instructions, reward, deadline, type, and logo upload.
-- Full read access to submissions on each bounty.
+### Unified Dashboard System
+Access to the dashboard is gated by your wallet role. There are two primary views:
 
-### 🛡️ Admin Panel
-- Role-gated admin workspace (admin wallet addresses configured server-side).
-- Pending submissions review queue with approve/reject workflow.
-- Platform-wide metrics dashboard.
-- Data tables for bounties, posters, hunters, and payouts.
+#### 💼 Project Workspace (All Users / Contributors / Projects)
+Every standard wallet gains access to this shared workspace:
+- **Overview:** Track key metrics for your posted bounties and submitted work.
+- **Post Bounty:** Create new bounty listings with detailed requirements and reward parameters.
+- **Reviews:** Review contributor submissions for bounties you've created.
+- **Profile Settings:** Customize your display name and bio details linked to your Cardano stake key.
 
-### 🔔 Notifications
+#### 🛡️ Admin Operations Workspace (Admin Wallets)
+Gated for configured admin wallets:
+- **Approvals:** Review escrow-funded bounty posts before they go live.
+- **Submissions:** Finalize admin review on poster-approved submissions.
+- **Payouts & Refunds:** Process treasury payout transactions and candidate refunds.
+- **System Metrics:** Monitor overall platform activity, dispute records, and treasury exposure.
+
+### Notifications
 - Real-time notification bell in the site header.
-- Notifications for submission status changes (approved, rejected, pending review).
-- Unread badge count with dismissal support.
+- Status update notifications for submissions (approved, rejected, or pending review).
 
 ---
 
 ## 🏗️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Framework** | [Next.js 16](https://nextjs.org) (App Router) |
-| **Language** | TypeScript 5 |
-| **Styling** | Vanilla CSS with CSS custom properties (no Tailwind in landing/pages) |
-| **Database** | [Supabase](https://supabase.com) (PostgreSQL + Row Level Security) |
-| **Wallet SDK** | [MeshSDK](https://meshjs.dev) (`@meshsdk/core`, `@meshsdk/react`) |
-| **Blockchain Data** | [Blockfrost](https://blockfrost.io) (`@blockfrost/blockfrost-js`) |
-| **Auth** | Custom JWT challenge-response via wallet signature |
-| **Email** | [Resend](https://resend.com) (waitlist and notification emails) |
-| **State / Forms** | React Hook Form, Zod, TanStack Query |
-| **UI Primitives** | Radix UI (dialogs, tabs, dropdowns, tooltips) |
-| **Deployment** | [Vercel](https://vercel.com) |
-
----
-
-## 📁 Project Structure
-
-```
-cardano-bounties/
-├── app/
-│   ├── api/                  # Next.js API routes
-│   │   ├── auth/             # Wallet challenge & verify endpoints
-│   │   ├── bounties/         # CRUD for bounty listings
-│   │   ├── submissions/      # Contribution submission endpoints
-│   │   ├── dashboard/        # Poster-scoped data endpoints
-│   │   ├── admin/            # Admin-only management endpoints
-│   │   ├── metrics/          # Platform-wide stats
-│   │   ├── notifications/    # Notification read/unread management
-│   │   ├── upload/           # Project logo file uploads
-│   │   ├── users/            # User profile endpoints
-│   │   └── waitlist/         # Waitlist signup endpoint
-│   ├── pages/                # Full-page React components
-│   │   ├── ExploreBountiesPage.tsx
-│   │   ├── BountyDetailsPage.tsx
-│   │   ├── DashboardPage.tsx
-│   │   ├── PosterOverviewPage.tsx
-│   │   └── ...
-│   ├── bounties/[id]/        # Dynamic bounty detail route
-│   ├── explore/              # Explore page route
-│   ├── dashboard/            # Poster/admin dashboard routes
-│   ├── post-bounty/          # Bounty creation route
-│   ├── globals.css           # Global design system & utility styles
-│   └── layout.tsx            # Root layout with font + metadata
-├── components/
-│   ├── landing/              # Landing page sections (Hero, Footer, Header, etc.)
-│   ├── dashboard/            # Dashboard shell and navigation
-│   ├── wallet/               # WalletConnect & WalletProvider
-│   ├── notifications/        # NotificationBell component
-│   └── ui/                   # Shared Radix-based UI primitives
-├── lib/                      # Server utilities (Supabase client, auth helpers)
-├── hooks/                    # Custom React hooks
-├── supabase/
-│   └── migrations/           # SQL migration files for the database schema
-├── scripts/                  # Build-time scripts (e.g., libsodium prep)
-└── public/                   # Static assets and images
-```
+- **Frontend:** Next.js (App Router), React, TypeScript
+- **Styling:** Vanilla CSS with custom properties
+- **Database:** Supabase (PostgreSQL with Row Level Security)
+- **Cardano Integration:** MeshSDK, Blockfrost
+- **Email Delivery:** Resend
+- **State & Forms:** React Hook Form, Zod, TanStack Query
 
 ---
 
@@ -131,10 +79,10 @@ cardano-bounties/
 
 ### Prerequisites
 
-- **Node.js** v18 or higher
-- A **Supabase** project with the database migrations applied
-- A **Blockfrost** API key (for Cardano chain data)
-- A **Resend** API key (for email delivery)
+- Node.js v18 or higher
+- A Supabase project
+- A Blockfrost API key
+- A Resend API key
 
 ### 1. Clone the repository
 
@@ -151,39 +99,24 @@ npm install
 
 ### 3. Configure environment variables
 
-Create a `.env.local` file in the project root (copy from `.env.example` if available):
+Create a `.env` file in the project root:
 
 ```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# Blockfrost
-BLOCKFROST_PROJECT_ID=your-blockfrost-project-id
+BLOCKFROST_PREPROD_PROJECT_ID=your-blockfrost-id
+JWT_SECRET=your-jwt-secret
 
-# JWT Auth
-JWT_SECRET=your-strong-random-secret
+NEXT_PUBLIC_STORAGE_WALLET_KEY=cardano-bounties-wallet-id
+NEXT_PUBLIC_STORAGE_TOKEN_KEY=cb_token
 
-# Admin wallets (comma-separated stake addresses)
-ADMIN_WALLET_ADDRESSES=stake1...
-
-# Email (Resend)
-RESEND_API_KEY=re_...
-NEXT_PUBLIC_ADMIN_EMAIL=your@email.com
+ADMIN_EMAIL=admin@email.com
+NEXT_PUBLIC_ADMIN_EMAIL=admin@email.com
 ```
 
-### 4. Apply database migrations
-
-Using the Supabase CLI:
-
-```bash
-supabase db push
-```
-
-Or apply the SQL files in `supabase/migrations/` manually through the Supabase Studio dashboard.
-
-### 5. Run the development server
+### 4. Run the development server
 
 ```bash
 npm run dev
@@ -193,61 +126,17 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ---
 
-## 🔑 Wallet Authentication Flow
-
-Cardano Bounties uses a cryptographic challenge-response flow instead of traditional email/password auth:
-
-1. **Connect** — The user connects their Cardano wallet via MeshSDK.
-2. **Challenge** — The frontend calls `POST /api/auth/challenge` with the wallet address. The server returns a unique nonce to sign.
-3. **Sign** — The user signs the nonce message with their wallet's private key (in-browser, never shared).
-4. **Verify** — The signed payload is sent to `POST /api/auth/verify`. The server uses Blockfrost to resolve the wallet's on-chain public key and verifies the signature.
-5. **Session** — On success, the server issues a JWT stored in `sessionStorage`. All protected API calls include this token as a Bearer token in the `Authorization` header.
-
----
-
-## 🗄️ Database Schema (Key Tables)
-
-| Table | Purpose |
-|---|---|
-| `bounties` | Stores all bounty listings with reward, deadline, status, and instructions |
-| `submissions` | Tracks contributor work submissions linked to bounties |
-| `users` | Wallet-address-based user profiles |
-| `notifications` | Per-user notification records |
-| `waitlist` | Email signups from the landing page |
-
-Row Level Security (RLS) is enabled on all tables. Posters can only manage their own bounties; contributors can only see their own submissions.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Whether you're fixing a bug, improving the UI, or adding a new feature — feel free to open an issue or submit a pull request.
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature-name`
-3. Commit your changes: `git commit -m "feat: add your feature"`
-4. Push to your branch: `git push origin feature/your-feature-name`
-5. Open a Pull Request
-
-Please ensure your changes don't break the existing wallet auth flow and that all API routes handle auth errors gracefully.
-
----
-
 ## 🌐 Community & Links
 
-| | |
-|---|---|
-| **X (Twitter)** | [@cardanobounties](https://x.com/cardanobounties) |
-| **Discord** | [Join our server](https://discord.gg/rbQ97RaNw) |
-| **YouTube** | [@cardanobounties](https://youtube.com/@cardanobounties) |
-| **GitHub** | [Ayomishuga/Cardano-Bounties](https://github.com/Ayomishuga/Cardano-Bounties) |
+- **X (Twitter):** [@cardanobounties](https://x.com/cardanobounties)
+- **Discord:** [Join our server](https://discord.gg/rbQ97RaNw)
+- **YouTube:** [@cardanobounties](https://youtube.com/@cardanobounties)
+- **GitHub:** [Ayomishuga/Cardano-Bounties](https://github.com/Ayomishuga/Cardano-Bounties)
 
 ---
 
 ## 📄 License
 
-This project is open source. See [LICENSE](./LICENSE) for details.
-
----
+This project is open source. See the LICENSE file for details.
 
 Built with ❤️ by [TechKR](https://x.com/TechKr_Team) and [Gimbalabs](https://gimbalabs.com).
