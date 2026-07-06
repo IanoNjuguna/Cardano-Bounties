@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
         html,
       }),
     ])
-    console.log('Email results:', JSON.stringify(results))
     } catch (err) {
         console.error('Email error:', err)
     }
