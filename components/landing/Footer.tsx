@@ -16,9 +16,8 @@ export function Footer() {
             <h3>Platform</h3>
             <Link href="/explore">Explore Bounties</Link>
             <Link href="/#pricing">How It Works</Link>
-            <Link href="/#leaderboard">Leaderboard</Link>
             <Link href="/#faq">FAQs</Link>
-            <Link href="/#waitlist">Join Waitlist</Link>
+            <Link href="/post-bounty">Post a Bounty</Link>
           </div>
           <div>
             <h3>For Projects</h3>

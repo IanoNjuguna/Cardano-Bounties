@@ -1,5 +1,5 @@
 "use client";
-
+// v2 – full bounty detail modal
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { authFetch } from "@/lib/api";
@@ -15,14 +15,22 @@ type Bounty = {
   id: string;
   title: string;
   description?: string | null;
+  bounty_instructions?: string | null;
   type?: string | null;
   custom_type?: string | null;
   status: string;
   reward_amount?: number | string | null;
+  platform_fee_amount?: number | string | null;
+  total_funding_amount?: number | string | null;
+  deadline?: string | null;
+  project_name?: string | null;
+  project_logo_url?: string | null;
   escrow_tx_hash?: string | null;
+  escrow_address?: string | null;
   refund_tx_hash?: string | null;
   created_by?: string | null;
   created_at?: string | null;
+  updated_at?: string | null;
   poster?: UserProfile | null;
 };
 
@@ -406,11 +414,18 @@ export function AdminApprovalsPage() {
             
             <div className={styles.modalBody}>
               <h3 id="modal-title" className={styles.modalTitle}>{selectedItem.title}</h3>
-              
+
+              {/* ── Poster identity + ID ── */}
               <div className={styles.submitterInfo}>
                 <div className={styles.avatar} aria-hidden="true">{getInitials(getBountyPoster(selectedItem))}</div>
-                <span className={styles.handle} style={{ fontSize: '14px' }}>{getBountyPoster(selectedItem)}</span>
-                
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{getBountyPoster(selectedItem)}</div>
+                  {selectedItem.poster?.stake_address && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace', marginTop: 2 }}>
+                      {shortId(selectedItem.poster.stake_address)}
+                    </div>
+                  )}
+                </div>
                 <div className={styles.hashGroup}>
                   <span>ID: {shortId(selectedItem.id)}</span>
                   <button type="button" className={styles.copyBtn} aria-label="Copy bounty ID" aria-live="polite" data-copied={copyStatus === "copied"} onClick={() => void handleCopyHash(selectedItem.id)}>
@@ -423,15 +438,96 @@ export function AdminApprovalsPage() {
                 </div>
               </div>
 
+              {/* ── Metadata + Financials ── */}
               <div className={styles.contentSection}>
+                {/* Row 1: Category | Deadline */}
+                <div className={styles.contentBlock} style={{ display: 'flex', gap: 0 }}>
+                  <div style={{ flex: 1 }}>
+                    <div className={styles.contentLabel}>Category</div>
+                    <div className={styles.contentValue}>
+                      {selectedItem.custom_type || selectedItem.type || "—"}
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, borderLeft: '1px solid var(--line)', paddingLeft: 16 }}>
+                    <div className={styles.contentLabel}>Deadline</div>
+                    <div className={styles.contentValue}>
+                      {selectedItem.deadline
+                        ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(selectedItem.deadline))
+                        : "Rolling (no deadline)"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 2: Project | Submitted */}
+                <div className={styles.contentBlock} style={{ display: 'flex', gap: 0 }}>
+                  <div style={{ flex: 1 }}>
+                    <div className={styles.contentLabel}>Project</div>
+                    <div className={styles.contentValue}>{selectedItem.project_name || "Independent bounty"}</div>
+                  </div>
+                  <div style={{ flex: 1, borderLeft: '1px solid var(--line)', paddingLeft: 16 }}>
+                    <div className={styles.contentLabel}>Submitted</div>
+                    <div className={styles.contentValue} title={selectedItem.created_at ?? ""}>
+                      {formatRelativeTime(selectedItem.created_at)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 3: Financials — Reward | Platform Fee | Total */}
+                <div className={styles.contentBlock} style={{ display: 'flex', gap: 0 }}>
+                  <div style={{ flex: 1 }}>
+                    <div className={styles.contentLabel}>Contributor Reward</div>
+                    <div className={styles.contentValue} style={{ fontWeight: 700, color: 'var(--ink)' }}>
+                      {formatAda(selectedItem.reward_amount)}
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, borderLeft: '1px solid var(--line)', paddingLeft: 16 }}>
+                    <div className={styles.contentLabel}>Platform Fee</div>
+                    <div className={styles.contentValue}>{formatAda(selectedItem.platform_fee_amount)}</div>
+                  </div>
+                  <div style={{ flex: 1, borderLeft: '1px solid var(--line)', paddingLeft: 16 }}>
+                    <div className={styles.contentLabel}>Total Funded</div>
+                    <div className={styles.contentValue}>{formatAda(selectedItem.total_funding_amount)}</div>
+                  </div>
+                </div>
+
+                {/* Row 4: Description */}
                 <div className={styles.contentBlock}>
                   <div className={styles.contentLabel}>Bounty Description</div>
                   <div className={styles.contentValue}>
                     {selectedItem.description || "No description provided."}
                   </div>
                 </div>
+
+                {/* Row 5: Instructions (conditional) */}
+                {selectedItem.bounty_instructions && (
+                  <div className={styles.contentBlock}>
+                    <div className={styles.contentLabel}>Bounty Instructions</div>
+                    <div className={styles.contentValue}>{selectedItem.bounty_instructions}</div>
+                  </div>
+                )}
+
+                {/* Row 6: Escrow tx (conditional) */}
+                {selectedItem.escrow_tx_hash && (
+                  <div className={styles.contentBlock}>
+                    <div className={styles.contentLabel}>Escrow Transaction</div>
+                    <div className={styles.hashGroup} style={{ marginLeft: 0, justifyContent: 'flex-start' }}>
+                      <span className={styles.contentValue} style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                        {shortId(selectedItem.escrow_tx_hash)}
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.copyBtn}
+                        aria-label="Copy escrow tx hash"
+                        onClick={() => void handleCopyHash(selectedItem.escrow_tx_hash!)}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* ── Admin note ── */}
               <div className={styles.adminNoteSection}>
                 <label className={styles.contentLabel} htmlFor="admin-note-modal">Admin Note</label>
                 <textarea
